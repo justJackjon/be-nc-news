@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "setup-dbs": "psql -f ./db/setup.sql",
-    "seed": "knex seed:run",
+    "seed-dev": "npm run setup-dbs && knex seed:run",
+    "seed-test": "npm run setup-dbs && NODE_ENV=test knex seed:run",
     "test-utils": "mocha spec/utils.spec.js",
     "test": "mocha spec/*.spec.js",
     "migrate-make": "knex migrate:make",
