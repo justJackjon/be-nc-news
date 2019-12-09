@@ -33,7 +33,9 @@ exports.seed = function(knex) {
       */
     })
     .then(articleRows => {
-      console.log(articleRows);
+      console.log(articleRows, '<--- article rows ---');
+      const refObj = makeRefObj(articleRows);
+      console.log(refObj, '<--- refObj ---');
       /* 
 
       Your comment data is currently in the incorrect format and will violate your SQL schema. 

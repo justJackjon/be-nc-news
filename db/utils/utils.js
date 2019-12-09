@@ -5,6 +5,17 @@ exports.formatDates = list => {
   });
 };
 
-exports.makeRefObj = list => {};
+exports.makeRefObj = list => {
+  return Object.fromEntries(list.map(x => [x.title, x.article_id]));
+};
 
-exports.formatComments = (comments, articleRef) => {};
+exports.formatComments = (comments, articleRef) => {
+  const newComments = this.formatDates(comments);
+  return newComments.map(({ created_by, belongs_to, ...restOfKeys }) => {
+    return {
+      author: created_by,
+      article_id: articleRef[belongs_to],
+      ...restOfKeys
+    };
+  });
+};
