@@ -1,12 +1,11 @@
-// const { fetchTopicsM } = require('../models/Topics-m');
+const { fetchTopicsM } = require('../models/topics-m');
 
 exports.getTopicsC = (req, res, next) => {
-  console.log('hello from getTopicsC');
-  // fetchTopicsM(req.query)
-  //   .then(Topics => {
-  //     res.status(200).send({ Topics });
-  //   })
-  //   .catch(err => {
-  //     console.log(err);
-  //   });
+  fetchTopicsM()
+    .then(topics => {
+      res.status(200).send({ topics });
+    })
+    .catch(err => {
+      console.log(err);
+    });
 };

@@ -6,7 +6,9 @@ exports.formatDates = list => {
 };
 
 exports.makeRefObj = list => {
-  return Object.fromEntries(list.map(x => [x.title, x.article_id]));
+  return Object.fromEntries(
+    list.map(article => [article.title, article.article_id])
+  );
 };
 
 exports.formatComments = (comments, articleRef) => {
