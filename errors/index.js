@@ -17,6 +17,10 @@ exports.psqlErrorHandler = (err, req, res, next) => {
       '23502': {
         status: 400,
         message: 'Bad Request'
+      },
+      '42703': {
+        status: 500,
+        message: 'Undefined Column'
       }
     };
     const statusCode = codes[code].status;

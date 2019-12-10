@@ -199,7 +199,7 @@ describe.only('/api', () => {
     });
   });
 
-  describe('/api/articles/:article_id/comments', () => {
+  describe('/articles/:article_id/comments', () => {
     it('POST:201 responds with status 201 and the posted comment, accepting an object with username and body properties in the request body', () => {
       return request(app)
         .post('/api/articles/1/comments')
@@ -274,7 +274,85 @@ describe.only('/api', () => {
     });
   });
 
-  describe('/api/comments/:comment_id', () => {
+  describe('/api/articles', () => {
+    it("GET:200 respond with status 200 and an articles array of article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes' and 'comment_count'", () => {
+      return request(app)
+        .get('/api/articles')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          articles.forEach(article => {
+            expect(article).to.have.keys([
+              'author',
+              'title',
+              'body', // <--- should this be ommited? Docs unclear.
+              'article_id',
+              'topic',
+              'created_at',
+              'votes',
+              'comment_count'
+            ]);
+          });
+        });
+    });
+    it('GET:200 should have a comment_count property which is the total count of all the comments with this article_id', () => {
+      return request(app)
+        .get('/api/articles')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles[0].comment_count).to.equal(13);
+        });
+    });
+    it("GET:200 accepts query 'sort_by', which sorts the articles by any valid column (defaults to date [in descending order])", () => {
+      const defaultSort = request(app)
+        .get('/api/articles')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles).to.be.sortedBy('created_at', { descending: true });
+        });
+      const sortedByAuthorDesc = request(app)
+        .get('/api/articles?sort_by=author')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles).to.be.sortedBy('author', {
+            descending: true
+          });
+        });
+      return Promise.all([defaultSort, sortedByAuthorDesc]);
+    });
+    it("GET:200 accepts query 'order', which can be set to asc or desc for ascending or descending (defaults to descending)", () => {
+      const testDefault = request(app)
+        .get('/api/articles?sort_by=title')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles).to.be.sortedBy('title', { descending: true });
+        });
+      const testAsc = request(app)
+        .get('/api/articles?sort_by=title&order=asc')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles).to.be.sortedBy('title', { descending: false });
+        });
+      const testDesc = request(app)
+        .get('/api/articles?sort_by=title&order=desc')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles).to.be.sortedBy('title', { descending: true });
+        });
+      return Promise.all([testDefault, testAsc, testDesc]);
+    });
+    it("GET:200 accepts query 'author', which filters the articles by the username value specified in the query", () => {
+      return request(app)
+        .get('/api/articles?author=rogersop')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          articles.forEach(article => {
+            expect(article.author).to.equal('rogersop');
+          });
+        });
+    });
+  });
+
+  describe('/comments/:comment_id', () => {
     it('DELETE:204 responds with status 204 and should delete the given comment by comment_id', () => {
       return request(app)
         .delete('/api/comments/1')

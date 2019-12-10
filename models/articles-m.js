@@ -41,7 +41,43 @@ const updateArticleM = ({ article_id }, { inc_votes }) => {
     });
 };
 
+const selectArticlesArrayM = ({
+  sort_by = 'created_at',
+  order = 'desc',
+  author,
+  topic
+}) => {
+  return connection
+    .select()
+    .from('articles')
+    .modify(query => {
+      if (author) return query.where('author', '=', author);
+    })
+    .modify(query => {
+      if (topic) return query.where('topic', '=', topic);
+    })
+    .orderBy(sort_by, order)
+    .returning('*')
+    .then(rawArticles => {
+      const articleArrPromises = rawArticles.map(article => {
+        return connection('comments')
+          .count({ comment_count: '*' })
+          .where('article_id', '=', article.article_id)
+          .returning('*')
+          .then(([count]) => {
+            count.comment_count = +count.comment_count;
+            return { ...article, ...count };
+          });
+      });
+      return Promise.all(articleArrPromises);
+    })
+    .then(articles => {
+      return { articles };
+    });
+};
+
 module.exports = {
   fetchArticleM,
-  updateArticleM
+  updateArticleM,
+  selectArticlesArrayM
 };
