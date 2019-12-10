@@ -47,6 +47,7 @@ const selectArticlesArrayM = ({
   author,
   topic
 }) => {
+  if (order !== 'asc' && order !== 'desc') order = 'desc';
   return connection
     .select()
     .from('articles')
@@ -59,6 +60,12 @@ const selectArticlesArrayM = ({
     .orderBy(sort_by, order)
     .returning('*')
     .then(rawArticles => {
+      if (!rawArticles.length) {
+        return Promise.reject({
+          status: 404,
+          message: 'No Articles Found For This Query'
+        });
+      }
       const articleArrPromises = rawArticles.map(article => {
         return connection('comments')
           .count({ comment_count: '*' })

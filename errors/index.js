@@ -19,8 +19,8 @@ exports.psqlErrorHandler = (err, req, res, next) => {
         message: 'Bad Request'
       },
       '42703': {
-        status: 500,
-        message: 'Undefined Column'
+        status: 400,
+        message: 'This Column Does Not Exist'
       }
     };
     const statusCode = codes[code].status;
@@ -33,7 +33,7 @@ exports.psqlErrorHandler = (err, req, res, next) => {
 
 exports.customErrorHandler = (err, req, res, next) => {
   if (err.status) {
-    res.status(err.status).send(err.message);
+    res.status(err.status).send({ msg: err.message });
   } else {
     next(err);
   }

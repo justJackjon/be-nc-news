@@ -112,8 +112,8 @@ describe.only('/api', () => {
         return request(app)
           .get('/api/articles/999999')
           .expect(404)
-          .then(({ error: { text } }) => {
-            expect(text).to.equal('Not Found');
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Not Found');
           });
       });
     });
@@ -348,6 +348,40 @@ describe.only('/api', () => {
           articles.forEach(article => {
             expect(article.author).to.equal('rogersop');
           });
+        });
+    });
+    it("GET:200 accepts query 'topic', which filters the articles by the topic value specified in the query", () => {
+      return request(app)
+        .get('/api/articles?topic=mitch')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          articles.forEach(article => {
+            expect(article.topic).to.equal('mitch');
+          });
+        });
+    });
+    it("ERROR GET:400 responds with status 400 if client attempts to sort_by a column that doesn't exist", () => {
+      return request(app)
+        .get('/api/articles?sort_by=non-existent-column')
+        .expect(400)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('This Column Does Not Exist');
+        });
+    });
+    it("ERROR GET:200 responds with status 200 and defaults to descending order if the 'order' query value is malformed (!=='asc'/'desc')", () => {
+      return request(app)
+        .get('/api/articles?order=not-a-valid-query-value')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles).to.be.sortedBy('created_at', { descending: true });
+        });
+    });
+    it('ERROR GET:404 responds with status 404 if author exists but does not have any articles associated with them', () => {
+      return request(app)
+        .get('/api/articles?author=lurker')
+        .expect(404)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('No Articles Found For This Query');
         });
     });
   });
