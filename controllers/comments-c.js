@@ -1,13 +1,14 @@
 const {
   insertCommentM,
   selectCommentsM,
-  removeCommentM
+  removeCommentM,
+  updateCommentM
 } = require('../models/comments-m');
 
 exports.postCommentC = ({ params, body }, res, next) => {
   insertCommentM(params, body)
-    .then(response => {
-      res.status(201).send(response);
+    .then(comment => {
+      res.status(201).send(comment);
     })
     .catch(err => {
       next(err);
@@ -16,18 +17,28 @@ exports.postCommentC = ({ params, body }, res, next) => {
 
 exports.getCommentsC = ({ params, query }, res, next) => {
   selectCommentsM(params, query)
-    .then(response => {
-      res.status(200).send(response);
+    .then(comments => {
+      res.status(200).send(comments);
     })
     .catch(err => {
       next(err);
     });
 };
 
-exports.deleteCommentC = (req, res, next) => {
-  removeCommentM(req.params)
+exports.deleteCommentC = ({ params }, res, next) => {
+  removeCommentM(params)
     .then(() => {
       res.sendStatus(204);
+    })
+    .catch(err => {
+      next(err);
+    });
+};
+
+exports.patchCommentC = ({ params, body }, res, next) => {
+  updateCommentM(params, body)
+    .then(comment => {
+      res.status(200).send(comment);
     })
     .catch(err => {
       next(err);

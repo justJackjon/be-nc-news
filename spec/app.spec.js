@@ -481,45 +481,85 @@ describe.only('/api', () => {
   });
 
   describe('/comments/:comment_id', () => {
-    it('DELETE:204 responds with status 204 and should delete the given comment by comment_id', () => {
-      return request(app) // 18 comments in test db
-        .delete('/api/comments/1')
-        .expect(204)
-        .then(() => {
-          return connection
-            .select()
-            .from('comments')
-            .where('comment_id', '=', 1)
-            .returning('*');
-        })
-        .then(response => {
-          expect(response).to.eql([]);
-        })
-        .then(() => {
-          return connection
-            .select()
-            .from('comments')
-            .returning('*')
-            .then(commentsArr => {
-              expect(commentsArr.length).to.equal(17);
-            });
-        });
+    describe('PATCH', () => {
+      it("PATCH:200 responds with status 200 and the updated comment, accepts an object in the request body in the form { inc_votes: 1 } and INCREMENTS the comment's vote property by 1", () => {
+        return request(app)
+          .patch('/api/comments/1')
+          .send({ inc_votes: 1 })
+          .expect(200)
+          .then(({ body: { comment } }) => {
+            // comment with comment_id: 1 has 16 votes before PATCH - id2 = 14, id3 = 100.
+            expect(comment.votes).to.equal(17);
+          });
+      });
+      it("PATCH:200 responds with status 200 and the updated comment, accepts an object in the request body in the form { inc_votes: -1 } and DECREMENTS the comment's vote property by 1", () => {
+        return request(app)
+          .patch('/api/comments/1')
+          .send({ inc_votes: -1 })
+          .expect(200)
+          .then(({ body: { comment } }) => {
+            // comment with comment_id: 1 has 16 votes before PATCH - id2 = 14, id3 = 100.
+            expect(comment.votes).to.equal(15);
+          });
+      });
+      it('ERROR PATCH:404 responds with status 404 if the comment to be patched does not exist within the database', () => {
+        return request(app)
+          .patch('/api/comments/999999999')
+          .expect(404)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('No Comment Found, Nothing To Patch');
+          });
+      });
+      it('ERROR PATCH:400 responds with status 400 if the comment_id is not a valid number', () => {
+        return request(app)
+          .patch('/api/comments/NaN')
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request - Malformed comment_id');
+          });
+      });
     });
-    it('ERROR GET:404 responds with status 404 if the comment requested does not exist within the database', () => {
-      return request(app)
-        .delete('/api/comments/999999999')
-        .expect(404)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('No Comment Found, Nothing To Delete');
-        });
-    });
-    it('ERROR GET:400 responds with status 400 if the comment_id is not a valid number', () => {
-      return request(app)
-        .delete('/api/comments/NaN')
-        .expect(400)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('Bad Request - Malformed comment_id');
-        });
+    describe('DELETE', () => {
+      it('DELETE:204 responds with status 204 and should delete the given comment by comment_id', () => {
+        return request(app)
+          .delete('/api/comments/1')
+          .expect(204)
+          .then(() => {
+            return connection
+              .select()
+              .from('comments')
+              .where('comment_id', '=', 1)
+              .returning('*');
+          })
+          .then(response => {
+            expect(response).to.eql([]);
+          })
+          .then(() => {
+            return connection
+              .select()
+              .from('comments')
+              .returning('*')
+              .then(commentsArr => {
+                expect(commentsArr.length).to.equal(17); // Before the delete there are 18 comments in test db
+              });
+          });
+      });
+      it('ERROR DELETE:404 responds with status 404 if the comment requested does not exist within the database', () => {
+        return request(app)
+          .delete('/api/comments/999999999')
+          .expect(404)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('No Comment Found, Nothing To Delete');
+          });
+      });
+      it('ERROR DELETE:400 responds with status 400 if the comment_id is not a valid number', () => {
+        return request(app)
+          .delete('/api/comments/NaN')
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request - Malformed comment_id');
+          });
+      });
     });
   });
 });

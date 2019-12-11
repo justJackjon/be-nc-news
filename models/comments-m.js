@@ -44,8 +44,35 @@ const removeCommentM = ({ comment_id }) => {
   });
 };
 
+const updateCommentM = ({ comment_id }, { inc_votes }) => {
+  if (typeof +comment_id === 'number' && !isNaN(+comment_id)) {
+    return connection('comments')
+      .where('comment_id', '=', comment_id)
+      .modify(query => {
+        if (+inc_votes === 1) {
+          query.increment('votes', 1);
+        } else if (+inc_votes === -1) {
+          query.decrement('votes', 1);
+        }
+      })
+      .returning('*')
+      .then(([comment]) => {
+        if (comment) return { comment };
+        return Promise.reject({
+          status: 404,
+          message: 'No Comment Found, Nothing To Patch'
+        });
+      });
+  }
+  return Promise.reject({
+    status: 400,
+    message: 'Bad Request - Malformed comment_id'
+  });
+};
+
 module.exports = {
   insertCommentM,
   selectCommentsM,
-  removeCommentM
+  removeCommentM,
+  updateCommentM
 };
