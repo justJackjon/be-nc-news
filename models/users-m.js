@@ -26,8 +26,8 @@ const checkUserExists = username => {
     .returning('*')
     .then(userArr => {
       const user = userArr.filter(user => user.username === username);
-      if (user.length) return { user: user[0] };
-      return user;
+      if (user.length) return true;
+      return false;
     });
 };
 

@@ -1,4 +1,6 @@
 const connection = require('../db/connection');
+const { fetchTopicsM } = require('./topics-m');
+const { fetchUserM } = require('./users-m');
 
 const fetchArticleM = ({ article_id }) => {
   const articleData = connection
@@ -13,10 +15,10 @@ const fetchArticleM = ({ article_id }) => {
 
   return Promise.all([articleData, commentsData]).then(
     ([[articleData], [commentsData]]) => {
-      if (articleData) {
-        return { ...articleData, ...commentsData };
+      if (!articleData) {
+        return Promise.reject({ status: 404, message: 'No Such Article' });
       }
-      return Promise.reject({ status: 404, message: 'No Such Article' });
+      return { ...articleData, ...commentsData };
     }
   );
 };
@@ -48,6 +50,16 @@ const fetchArticleM = ({ article_id }) => {
 // };
 
 const updateArticleM = ({ article_id }, { inc_votes }) => {
+  if (
+    typeof inc_votes !== 'number' &&
+    isNaN(inc_votes) &&
+    inc_votes !== undefined
+  ) {
+    return Promise.reject({
+      status: 400,
+      message: 'Bad Request - Invalid Format For inc_votes'
+    });
+  }
   return connection
     .select()
     .from('articles')
@@ -151,6 +163,73 @@ const updateArticleM = ({ article_id }, { inc_votes }) => {
 //     });
 // };
 
+// const selectArticlesArrayM = ({
+//   sort_by = 'created_at',
+//   order = 'desc',
+//   author,
+//   topic
+// }) => {
+//   if (order !== 'asc' && order !== 'desc') order = 'desc';
+//   return connection
+//     .select('articles.*')
+//     .from('articles')
+//     .leftJoin('comments', 'articles.article_id', 'comments.article_id')
+//     .count('comment_id as comment_count')
+//     .groupBy('articles.article_id')
+//     .modify(query => {
+//       if (author) return query.where('articles.author', '=', author);
+//     })
+//     .modify(query => {
+//       if (topic) return query.where('topic', '=', topic);
+//     })
+//     .orderBy(sort_by, order)
+//     .returning('*')
+//     .then(articles => {
+//       if (articles.length) {
+//         articles.forEach(article => {
+//           delete article.body;
+//         });
+//       }
+//       return { articles };
+//     });
+// };
+
+// const selectArticlesArrayM = ({
+//   sort_by = 'created_at',
+//   order = 'desc',
+//   author,
+//   topic
+// }) => {
+//   if (order !== 'asc' && order !== 'desc') order = 'desc';
+//   return fetchTopicsM(topic).then(({ topics }) => {
+//     if (topics.length) {
+//       return connection
+//         .select('articles.*')
+//         .from('articles')
+//         .leftJoin('comments', 'articles.article_id', 'comments.article_id')
+//         .count('comment_id as comment_count')
+//         .groupBy('articles.article_id')
+//         .modify(query => {
+//           if (author) return query.where('articles.author', '=', author);
+//         })
+//         .modify(query => {
+//           if (topic) return query.where('topic', '=', topic);
+//         })
+//         .orderBy(sort_by, order)
+//         .returning('*')
+//         .then(articles => {
+//           if (articles.length) {
+//             articles.forEach(article => {
+//               delete article.body;
+//             });
+//           }
+//           return { articles };
+//         });
+//     }
+//     return Promise.reject({ status: 404, message: 'Topic Not Found' });
+//   });
+// };
+
 const selectArticlesArrayM = ({
   sort_by = 'created_at',
   order = 'desc',
@@ -158,27 +237,40 @@ const selectArticlesArrayM = ({
   topic
 }) => {
   if (order !== 'asc' && order !== 'desc') order = 'desc';
-  return connection
-    .select('articles.*')
-    .from('articles')
-    .leftJoin('comments', 'articles.article_id', 'comments.article_id')
-    .count('comment_id as comment_count')
-    .groupBy('articles.article_id')
-    .modify(query => {
-      if (author) return query.where('articles.author', '=', author);
+  return fetchTopicsM(topic)
+    .then(({ topics }) => {
+      if (topics.length) return;
+      return Promise.reject({ status: 404, message: 'Topic Not Found' });
     })
-    .modify(query => {
-      if (topic) return query.where('topic', '=', topic);
+    .then(() => {
+      if (!author) return;
+      return fetchUserM({ username: author }).then(author => {
+        if (author) return;
+      });
     })
-    .orderBy(sort_by, order)
-    .returning('*')
-    .then(articles => {
-      if (articles.length) {
-        articles.forEach(article => {
-          delete article.body;
+    .then(() => {
+      return connection
+        .select('articles.*')
+        .from('articles')
+        .leftJoin('comments', 'articles.article_id', 'comments.article_id')
+        .count('comment_id as comment_count')
+        .groupBy('articles.article_id')
+        .modify(query => {
+          if (author) return query.where('articles.author', '=', author);
+        })
+        .modify(query => {
+          if (topic) return query.where('topic', '=', topic);
+        })
+        .orderBy(sort_by, order)
+        .returning('*')
+        .then(articles => {
+          if (articles.length) {
+            articles.forEach(article => {
+              delete article.body;
+            });
+          }
+          return { articles };
         });
-      }
-      return { articles };
     });
 };
 

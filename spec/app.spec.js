@@ -45,6 +45,14 @@ describe.only('/api', () => {
           // console.log(topics[0]); possible add more robust testing here??
         });
     });
+    it('ERROR GET:404 responds with 404 status code when provided with a non existent topic', () => {
+      return request(app)
+        .get('/api/not-a-topic')
+        .expect(404)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('Not Found');
+        });
+    });
     it("ERROR INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
       const invalidMethods = ['post', 'patch', 'put', 'delete'];
       const methodPromises = invalidMethods.map(method => {
@@ -244,23 +252,13 @@ describe.only('/api', () => {
             expect(article.votes).to.equal(100);
           });
       });
-      it('ERROR PATCH:200 responds with 200 status code and the unchanged article if the value of inc_votes is an invalid format (such as a string)', () => {
+      it('ERROR PATCH:400 responds with 400 status code if the value of inc_votes is an invalid format (such as a string)', () => {
         return request(app)
           .patch('/api/articles/1')
           .send({ inc_votes: 'five' })
-          .expect(200)
-          .then(({ body: { article } }) => {
-            expect(article).to.have.keys([
-              'article_id',
-              'title',
-              'body',
-              'votes',
-              'topic',
-              'author',
-              'created_at'
-            ]);
-            expect(article.article_id).to.equal(1);
-            expect(article.votes).to.equal(100);
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request - Invalid Format For inc_votes');
           });
       });
       it("ERROR PATCH:404 responds with 404 status code when url contains well formed article_id that doesn't exist in the database", () => {
@@ -421,7 +419,7 @@ describe.only('/api', () => {
     });
     it('ERROR GET:200 responds with 200 status code and an empty array when client GET requests an article with no comments', () => {
       return request(app)
-        .get('/api/articles/999999999/comments')
+        .get('/api/articles/2/comments') // article_ids 1, 5, 6 and 9 have comments
         .expect(200)
         .then(({ body: { comments } }) => {
           expect(comments).to.eql([]);
@@ -435,16 +433,24 @@ describe.only('/api', () => {
           expect(msg).to.equal('Invalid Input Syntax');
         });
     });
+    it('ERROR GET:404 responds with 404 status code when when given a valid article_id that does not exist', () => {
+      return request(app)
+        .get('/api/articles/1000/comments')
+        .expect(404)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('No Such Article');
+        });
+    });
   });
 
   describe('/api/articles', () => {
     describe('checkUserExists model', () => {
       it('Checks whether the user exists in the database', () => {
         const doesNotExist = checkUserExists('jackjon').then(result => {
-          expect(result).to.eql([]);
+          expect(result).to.be.false;
         });
-        const doesExist = checkUserExists('rogersop').then(({ user }) => {
-          expect(user.username).to.equal('rogersop');
+        const doesExist = checkUserExists('rogersop').then(result => {
+          expect(result).to.be.true;
         });
         return Promise.all([doesNotExist, doesExist]);
       });
@@ -525,6 +531,14 @@ describe.only('/api', () => {
           });
         });
     });
+    it("GET:200 accepts query 'author', which filters the articles by the username value specified in the query", () => {
+      return request(app)
+        .get('/api/articles?author=not-an-author')
+        .expect(404)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('No Such User');
+        });
+    });
     it("GET:200 accepts query 'topic', which filters the articles by the topic value specified in the query", () => {
       return request(app)
         .get('/api/articles?topic=mitch')
@@ -541,6 +555,14 @@ describe.only('/api', () => {
         .expect(200)
         .then(({ body: { articles } }) => {
           expect(articles).to.eql([]);
+        });
+    });
+    it('ERROR GET:404 responds with status 404 when provided with a non-existent topic', () => {
+      return request(app)
+        .get('/api/articles?topic=not-a-topic')
+        .expect(404)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('Topic Not Found');
         });
     });
     it("ERROR GET:400 responds with status 400 if client attempts to sort_by a column that doesn't exist", () => {
@@ -592,6 +614,16 @@ describe.only('/api', () => {
             expect(comment.votes).to.equal(15);
           });
       });
+      it('ERROR PATCH:200 responds with status 200 and the unchanged comment when no inc_votes property is provided in the request body', () => {
+        return request(app)
+          .patch('/api/comments/1')
+          .send({ foobar: 1 })
+          .expect(200)
+          .then(({ body: { comment } }) => {
+            // comment with comment_id: 1 has 16 votes before PATCH - id2 = 14, id3 = 100.
+            expect(comment.votes).to.equal(16);
+          });
+      });
       it('ERROR PATCH:404 responds with status 404 if the comment to be patched does not exist within the database', () => {
         return request(app)
           .patch('/api/comments/999999999')
@@ -604,6 +636,7 @@ describe.only('/api', () => {
       it('ERROR PATCH:400 responds with status 400 if the comment_id is not a valid number', () => {
         return request(app)
           .patch('/api/comments/NaN')
+          .send({ inc_votes: 1 })
           .expect(400)
           .then(({ body: { msg } }) => {
             expect(msg).to.equal('Bad Request');
