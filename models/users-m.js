@@ -19,6 +19,19 @@ const fetchUserM = ({ username }) => {
     });
 };
 
+const checkUserExists = username => {
+  return connection
+    .select()
+    .from('users')
+    .returning('*')
+    .then(userArr => {
+      const user = userArr.filter(user => user.username === username);
+      if (user.length) return { user: user[0] };
+      return user;
+    });
+};
+
 module.exports = {
-  fetchUserM
+  fetchUserM,
+  checkUserExists
 };

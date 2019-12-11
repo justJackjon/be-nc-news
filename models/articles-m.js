@@ -14,7 +14,6 @@ const fetchArticleM = ({ article_id }) => {
   return Promise.all([articleData, commentsData]).then(
     ([[articleData], [commentsData]]) => {
       if (articleData) {
-        commentsData.comment_count = +commentsData.comment_count;
         return { ...articleData, ...commentsData };
       }
       return Promise.reject({ status: 404, message: 'No Such Article' });
@@ -22,11 +21,44 @@ const fetchArticleM = ({ article_id }) => {
   );
 };
 
+// const updateArticleM = ({ article_id }, { inc_votes }) => {
+//   return connection
+//     .select('votes')
+//     .from('articles')
+//     .where('article_id', '=', article_id)
+//     .returning('*')
+//     .then(responseArr => {
+//       if (!responseArr.length)
+//         return Promise.reject({
+//           status: 404,
+//           message: 'No Such Article - Unable To Patch'
+//         });
+//       return responseArr;
+//     })
+//     .then(([{ votes }]) => {
+//       const newVotes = votes + inc_votes;
+//       return connection('articles')
+//         .where('article_id', '=', article_id)
+//         .update('votes', newVotes)
+//         .returning('*')
+//         .then(([article]) => {
+//           return { article };
+//         });
+//     });
+// };
+
 const updateArticleM = ({ article_id }, { inc_votes }) => {
   return connection
-    .select('votes')
+    .select()
     .from('articles')
     .where('article_id', '=', article_id)
+    .modify(query => {
+      if (+inc_votes > 0) {
+        query.increment('votes', +inc_votes);
+      } else if (+inc_votes < 0) {
+        query.decrement('votes', +inc_votes);
+      }
+    })
     .returning('*')
     .then(responseArr => {
       if (!responseArr.length)
@@ -36,15 +68,8 @@ const updateArticleM = ({ article_id }, { inc_votes }) => {
         });
       return responseArr;
     })
-    .then(([{ votes }]) => {
-      const newVotes = votes + inc_votes;
-      return connection('articles')
-        .where('article_id', '=', article_id)
-        .update('votes', newVotes)
-        .returning('*')
-        .then(([article]) => {
-          return { article };
-        });
+    .then(([article]) => {
+      return { article };
     });
 };
 
@@ -90,6 +115,42 @@ const updateArticleM = ({ article_id }, { inc_votes }) => {
 //     });
 // };
 
+// const selectArticlesArrayM = ({
+//   sort_by = 'created_at',
+//   order = 'desc',
+//   author,
+//   topic
+// }) => {
+//   if (order !== 'asc' && order !== 'desc') order = 'desc';
+//   return connection
+//     .select('articles.*')
+//     .from('articles')
+//     .leftJoin('comments', 'articles.article_id', 'comments.article_id')
+//     .count('comment_id as comment_count')
+//     .groupBy('articles.article_id')
+//     .modify(query => {
+//       if (author) return query.where('articles.author', '=', author);
+//     })
+//     .modify(query => {
+//       if (topic) return query.where('topic', '=', topic);
+//     })
+//     .orderBy(sort_by, order)
+//     .returning('*')
+//     .then(articles => {
+//       if (!articles.length) {
+//         return Promise.reject({
+//           status: 404,
+//           message: 'No Articles Found For This Query'
+//         });
+//       } else {
+//         articles.forEach(article => {
+//           delete article.body;
+//         });
+//       }
+//       return { articles };
+//     });
+// };
+
 const selectArticlesArrayM = ({
   sort_by = 'created_at',
   order = 'desc',
@@ -112,14 +173,8 @@ const selectArticlesArrayM = ({
     .orderBy(sort_by, order)
     .returning('*')
     .then(articles => {
-      if (!articles.length) {
-        return Promise.reject({
-          status: 404,
-          message: 'No Articles Found For This Query'
-        });
-      } else {
+      if (articles.length) {
         articles.forEach(article => {
-          article.comment_count = +article.comment_count;
           delete article.body;
         });
       }

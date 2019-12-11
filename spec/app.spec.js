@@ -6,6 +6,7 @@ const chaiSorted = require('sams-chai-sorted');
 
 const app = require('../app');
 const connection = require('../db/connection');
+const { checkUserExists } = require('../models/users-m');
 
 chai.use(chaiSorted);
 
@@ -20,6 +21,18 @@ describe.only('/api', () => {
         expect(msg).to.equal('Not Found');
       });
   });
+  it("ERROR INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
+    const invalidMethods = ['get', 'post', 'patch', 'put', 'delete'];
+    const methodPromises = invalidMethods.map(method => {
+      return request(app)
+        [method]('/api')
+        .expect(405)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('Method Not Allowed');
+        });
+    });
+    return Promise.all(methodPromises);
+  });
   describe('/topics', () => {
     it('GET:200 responds with an array of topic objects, each of which should have slug and description properties', () => {
       return request(app)
@@ -29,6 +42,7 @@ describe.only('/api', () => {
           topics.forEach(topic => {
             expect(topic).to.have.keys(['slug', 'description']);
           });
+          // console.log(topics[0]); possible add more robust testing here??
         });
     });
     it("ERROR INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
@@ -115,7 +129,7 @@ describe.only('/api', () => {
           .expect(200)
           .then(({ body: { article } }) => {
             expect(article.article_id).to.equal(1);
-            expect(article.comment_count).to.equal(13);
+            expect(article.comment_count).to.equal('13');
           });
       });
       it('ERROR GET:400 responds with 400 status code when url contains malformed/invalid article_id', () => {
@@ -184,6 +198,25 @@ describe.only('/api', () => {
             expect(article.votes).to.equal(5);
           });
       });
+      it('ERROR PATCH:200 responds with 200 status code and sends the unchanged article to the client, ignoring a patch request with no information in the request body', () => {
+        return request(app)
+          .patch('/api/articles/1')
+          .send({})
+          .expect(200)
+          .then(({ body: { article } }) => {
+            expect(article).to.have.keys([
+              'article_id',
+              'title',
+              'body',
+              'votes',
+              'topic',
+              'author',
+              'created_at'
+            ]);
+            expect(article.article_id).to.equal(1);
+            expect(article.votes).to.equal(100);
+          });
+      });
       it('ERROR PATCH:400 responds with 400 status code when url contains malformed/invalid article_id', () => {
         return request(app)
           .patch('/api/articles/i-am-a-dog-and-not-an-id')
@@ -192,22 +225,42 @@ describe.only('/api', () => {
             expect(msg).to.equal('Invalid Input Syntax');
           });
       });
-      it('ERROR PATCH:400 responds with 400 status code if no inc_votes property is present on the request body', () => {
+      it('ERROR PATCH:200 responds with 200 status code and the unchanged article if no inc_votes property is present on the request body', () => {
         return request(app)
           .patch('/api/articles/1')
           .send({ not_inc_votes_just_some_imposter: 5 })
-          .expect(400)
-          .then(({ body: { msg } }) => {
-            expect(msg).to.equal('Invalid Input Syntax');
+          .expect(200)
+          .then(({ body: { article } }) => {
+            expect(article).to.have.keys([
+              'article_id',
+              'title',
+              'body',
+              'votes',
+              'topic',
+              'author',
+              'created_at'
+            ]);
+            expect(article.article_id).to.equal(1);
+            expect(article.votes).to.equal(100);
           });
       });
-      it('ERROR PATCH:400 responds with 400 status code if the value of inc_votes is an invalid format (such as a string)', () => {
+      it('ERROR PATCH:200 responds with 200 status code and the unchanged article if the value of inc_votes is an invalid format (such as a string)', () => {
         return request(app)
           .patch('/api/articles/1')
           .send({ inc_votes: 'five' })
-          .expect(400)
-          .then(({ body: { msg } }) => {
-            expect(msg).to.equal('Invalid Input Syntax');
+          .expect(200)
+          .then(({ body: { article } }) => {
+            expect(article).to.have.keys([
+              'article_id',
+              'title',
+              'body',
+              'votes',
+              'topic',
+              'author',
+              'created_at'
+            ]);
+            expect(article.article_id).to.equal(1);
+            expect(article.votes).to.equal(100);
           });
       });
       it("ERROR PATCH:404 responds with 404 status code when url contains well formed article_id that doesn't exist in the database", () => {
@@ -252,6 +305,23 @@ describe.only('/api', () => {
           expect(comment.body).to.equal('test comment');
           expect(comment.article_id).to.equal(1);
         });
+    });
+    it('ERROR POST:400 responds with status 400 when POST request does not include all the required keys', () => {
+      const missingBody = request(app)
+        .post('/api/articles/1/comments')
+        .send({ username: 'butter_bridge' })
+        .expect(400)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('Bad Request');
+        });
+      const missingUsername = request(app)
+        .post('/api/articles/1/comments')
+        .send({ body: 'test comment' })
+        .expect(400)
+        .then(({ body: { msg } }) => {
+          expect(msg).to.equal('Bad Request');
+        });
+      return Promise.all([missingBody, missingUsername]);
     });
     it('ERROR POST:400 responds with 400 status code when url contains malformed/invalid article_id', () => {
       return request(app)
@@ -349,12 +419,12 @@ describe.only('/api', () => {
         });
       return Promise.all([testDefault, testAsc, testDesc]);
     });
-    it('ERROR GET:404 responds with 404 status code when client GET requests an article with no comments', () => {
+    it('ERROR GET:200 responds with 200 status code and an empty array when client GET requests an article with no comments', () => {
       return request(app)
         .get('/api/articles/999999999/comments')
-        .expect(404)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('No Comments Found');
+        .expect(200)
+        .then(({ body: { comments } }) => {
+          expect(comments).to.eql([]);
         });
     });
     it('ERROR GET:400 responds with 400 status code when url contains malformed/invalid article_id', () => {
@@ -368,6 +438,17 @@ describe.only('/api', () => {
   });
 
   describe('/api/articles', () => {
+    describe('checkUserExists model', () => {
+      it('Checks whether the user exists in the database', () => {
+        const doesNotExist = checkUserExists('jackjon').then(result => {
+          expect(result).to.eql([]);
+        });
+        const doesExist = checkUserExists('rogersop').then(({ user }) => {
+          expect(user.username).to.equal('rogersop');
+        });
+        return Promise.all([doesNotExist, doesExist]);
+      });
+    });
     it("GET:200 respond with status 200 and an articles array of ALL the article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes' and 'comment_count'", () => {
       return request(app)
         .get('/api/articles')
@@ -393,7 +474,7 @@ describe.only('/api', () => {
         .get('/api/articles')
         .expect(200)
         .then(({ body: { articles } }) => {
-          expect(articles[0].comment_count).to.equal(13);
+          expect(articles[0].comment_count).to.equal('13');
         });
     });
     it("GET:200 accepts query 'sort_by', which sorts the articles by any valid column (defaults to date [in descending order])", () => {
@@ -454,6 +535,14 @@ describe.only('/api', () => {
           });
         });
     });
+    it('ERROR GET:200 responds with status 200 and an empty array when client requests articles for a topic that does exist, but has no articles', () => {
+      return request(app)
+        .get('/api/articles?topic=paper')
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles).to.eql([]);
+        });
+    });
     it("ERROR GET:400 responds with status 400 if client attempts to sort_by a column that doesn't exist", () => {
       return request(app)
         .get('/api/articles?sort_by=non-existent-column')
@@ -470,12 +559,13 @@ describe.only('/api', () => {
           expect(articles).to.be.sortedBy('created_at', { descending: true });
         });
     });
-    it('ERROR GET:404 responds with status 404 if author exists but does not have any articles associated with them', () => {
+    it('ERROR GET:200 responds with status 200 and an empty array if author exists but does not have any articles associated with them', () => {
       return request(app)
         .get('/api/articles?author=lurker')
-        .expect(404)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('No Articles Found For This Query');
+        .expect(200)
+        .then(({ body: { articles } }) => {
+          expect(articles).to.be.an('array');
+          expect(articles).to.eql([]);
         });
     });
   });
@@ -505,6 +595,7 @@ describe.only('/api', () => {
       it('ERROR PATCH:404 responds with status 404 if the comment to be patched does not exist within the database', () => {
         return request(app)
           .patch('/api/comments/999999999')
+          .send({ inc_votes: 1 })
           .expect(404)
           .then(({ body: { msg } }) => {
             expect(msg).to.equal('No Comment Found, Nothing To Patch');
@@ -515,7 +606,16 @@ describe.only('/api', () => {
           .patch('/api/comments/NaN')
           .expect(400)
           .then(({ body: { msg } }) => {
-            expect(msg).to.equal('Bad Request - Malformed comment_id');
+            expect(msg).to.equal('Bad Request');
+          });
+      });
+      it('ERROR PATCH:400 responds with status 400 when sent an invalid inc_votes value', () => {
+        return request(app)
+          .patch('/api/comments/1')
+          .send({ inc_votes: -111 })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
           });
       });
     });
