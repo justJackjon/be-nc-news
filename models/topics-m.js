@@ -4,7 +4,10 @@ const fetchTopicsM = () => {
   return connection
     .select()
     .from('topics')
-    .returning('*');
+    .returning('*')
+    .then(topics => {
+      return { topics };
+    });
 };
 
 module.exports = {
