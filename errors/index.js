@@ -7,9 +7,9 @@ exports.send405Error = (req, res, next) => {
 };
 
 exports.psqlErrorHandler = (err, req, res, next) => {
-  if (err.code) {
-    const code = err.code;
-    const codes = {
+  const { code, message } = err;
+  if (code) {
+    const codeRef = {
       '22P02': {
         status: 400,
         message: 'Invalid Input Syntax'
@@ -21,11 +21,17 @@ exports.psqlErrorHandler = (err, req, res, next) => {
       '42703': {
         status: 400,
         message: 'This Column Does Not Exist'
+      },
+      '42P01': {
+        status: 400,
+        message: 'Relation Does Not Exist'
       }
     };
-    const statusCode = codes[code].status;
-    const errorMessage = codes[code].message;
-    res.status(statusCode).send({ msg: errorMessage });
+    if (codeRef[code]) {
+      res.status(codeRef[code].status).send({ msg: codeRef[code].message });
+    } else {
+      res.status(422).send({ msg: message });
+    }
   } else {
     next(err);
   }

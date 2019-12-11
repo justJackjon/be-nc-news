@@ -14,8 +14,8 @@ exports.postCommentC = ({ params, body }, res, next) => {
     });
 };
 
-exports.getCommentsC = ({ query }, res, next) => {
-  selectCommentsM(query)
+exports.getCommentsC = ({ params, query }, res, next) => {
+  selectCommentsM(params, query)
     .then(response => {
       res.status(200).send(response);
     })
@@ -26,9 +26,8 @@ exports.getCommentsC = ({ query }, res, next) => {
 
 exports.deleteCommentC = (req, res, next) => {
   removeCommentM(req.params)
-    .then(amountDeleted => {
-      if (amountDeleted) res.sendStatus(204);
-      // else do something here
+    .then(() => {
+      res.sendStatus(204);
     })
     .catch(err => {
       next(err);
