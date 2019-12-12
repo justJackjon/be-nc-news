@@ -12,14 +12,19 @@ const insertCommentM = ({ article_id }, { username, body }) => {
 
 const selectCommentsM = (
   { article_id },
-  { sort_by = 'created_at', order = 'desc' }
+  { sort_by = 'created_at', order = 'desc', limit = 10, p = 1 }
 ) => {
   return fetchArticleM({ article_id }).then(() => {
     return connection
       .select()
       .from('comments')
       .where('article_id', '=', article_id)
+      .modify(query => {
+        const offset = (p - 1) * limit;
+        if (offset) return query.offset(offset);
+      })
       .orderBy(sort_by, order)
+      .limit(limit)
       .returning('*')
       .then(comments => {
         return { comments };

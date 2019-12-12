@@ -332,12 +332,12 @@ describe('/api', () => {
     });
     it("GET:200 responds with status 200 and an articles array of article objects, each of which should have the following properties: 'article_id', 'comment_id', 'votes', 'created_at', 'author', 'body'", () => {
       return request(app)
-        .get('/api/articles/1/comments')
+        .get('/api/articles/1/comments?limit=99') // <--- limit query is tested below...
         .expect(200)
         .then(({ body: { comments } }) => {
           comments.forEach(comment => {
             expect(comment).to.have.keys([
-              'article_id', // <--- guessing it should have this? Docs vague.
+              'article_id',
               'comment_id',
               'votes',
               'created_at',
@@ -345,6 +345,7 @@ describe('/api', () => {
               'body'
             ]);
           });
+          expect(comments.length).to.equal(13);
         });
     });
     it('GET:200 responds with status 200 and only returns an array of article objects which match the correct article_id', () => {
@@ -418,6 +419,62 @@ describe('/api', () => {
         });
       return Promise.all([testDefault, testAsc, testDesc]);
     });
+    it("GET:200 accepts query 'limit', which has a default value of 10 and limits the number of comments sent back to the client", () => {
+      const defaultLimit = request(app)
+        .get('/api/articles/1/comments')
+        .expect(200)
+        .then(({ body: { comments } }) => {
+          expect(comments.length).to.equal(10);
+        });
+      const specifiedLimit = request(app)
+        .get('/api/articles/1/comments?limit=5')
+        .expect(200)
+        .then(({ body: { comments } }) => {
+          expect(comments.length).to.equal(5);
+        });
+      return Promise.all([defaultLimit, specifiedLimit]);
+    });
+    it("GET:200 accepts query 'p', which has a default value of 1 and, based upon the limit query, will send a subset of results according to the page number (p) requested", () => {
+      const defaultPageDefaultLimit = request(app)
+       // 'Sort_by' and 'order' queries is tested above. Required below for these tests so that each test can always expect the same comment_id to be present at a certain index.
+        .get('/api/articles/1/comments?sort_by=comment_id&order=asc')
+        .expect(200)
+        .then(({ body: { comments } }) => {
+          expect(comments.length).to.equal(10);
+          expect(comments[0].comment_id).to.equal(2);
+          expect(comments[9].comment_id).to.equal(11);
+        });
+      const defaultPageSpecifiedLimit = request(app)
+        .get('/api/articles/1/comments?limit=5&sort_by=comment_id&order=asc')
+        .expect(200)
+        .then(({ body: { comments } }) => {
+          expect(comments.length).to.equal(5);
+          expect(comments[0].comment_id).to.equal(2);
+          expect(comments[4].comment_id).to.equal(6);
+        });
+      const specifiedPageDefaultLimit = request(app)
+        .get('/api/articles/1/comments?p=2&sort_by=comment_id&order=asc')
+        .expect(200)
+        .then(({ body: { comments } }) => {
+          expect(comments.length).to.equal(3); // <-- There are only 13 comments for article_id 1 in the test database, so the second page of results should equal 3
+          expect(comments[0].comment_id).to.equal(12);
+          expect(comments[2].comment_id).to.equal(18);
+        });
+      const specifiedPageSpecifiedLimit = request(app)
+        .get('/api/articles/1/comments?p=2&limit=5&sort_by=comment_id&order=asc')
+        .expect(200)
+        .then(({ body: { comments } }) => {
+          expect(comments.length).to.equal(5);
+          expect(comments[0].comment_id).to.equal(7);
+          expect(comments[4].comment_id).to.equal(11);
+        });
+      return Promise.all([
+        defaultPageDefaultLimit,
+        defaultPageSpecifiedLimit,
+        specifiedPageDefaultLimit,
+        specifiedPageSpecifiedLimit
+      ]);
+    });
     it('ERROR GET:200 responds with 200 status code and an empty array when client GET requests an article with no comments', () => {
       return request(app)
         .get('/api/articles/2/comments') // article_ids 1, 5, 6 and 9 have comments
@@ -444,17 +501,16 @@ describe('/api', () => {
     });
   });
 
-  describe.only('/api/articles', () => {
+  describe('/api/articles', () => {
     it("GET:200 respond with status 200 and an articles array of ALL the article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes','comment_count' and 'total_count'", () => {
       return request(app)
-        .get('/api/articles')
+        .get('/api/articles?limit=99') // <--- 'limit' query is tested below - this needs to be specified as number of articles to expect is 12, yet default limit value is 10
         .expect(200)
         .then(({ body: { articles } }) => {
           articles.forEach(article => {
             expect(article).to.have.keys([
               'author',
               'title',
-              // 'body', // <--- should this be ommited? Docs unclear.
               'article_id',
               'topic',
               'created_at',
@@ -463,7 +519,7 @@ describe('/api', () => {
               'total_count'
             ]);
           });
-          expect(articles.length).to.equal(10); // <--- default value for optional query 'limit' = 10
+          expect(articles.length).to.equal(12);
         });
     });
     it('GET:200 should have a comment_count property which is the total count of all the comments with this article_id', () => {
