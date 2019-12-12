@@ -690,12 +690,12 @@ describe('/api', () => {
       return request(app)
         .get('/api')
         .expect(200)
-        .then(({ body: { endpoints } }) => {
-          expect(endpoints).to.be.a('string');
+        .then(({ body }) => {
+          expect(body).to.be.a('string');
           // TRIED TO USE chai-json-pattern BUT ENCOUNTERED A BUG. REVISIT.
-          expect(endpoints).to.include('"GET /api"');
-          expect(endpoints).to.include('"GET /api/topics"');
-          expect(endpoints).to.include('"GET /api/articles"');
+          expect(body).to.include('"GET /api"');
+          expect(body).to.include('"GET /api/topics"');
+          expect(body).to.include('"GET /api/articles"');
         });
     });
   });
