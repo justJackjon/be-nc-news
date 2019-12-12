@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "chai": "^4.2.0",
+    "chai-json-pattern": "^1.1.0",
     "eslint": "^6.7.2",
     "mocha": "^6.2.2",
     "sams-chai-sorted": "^1.0.2",

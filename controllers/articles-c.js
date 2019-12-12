@@ -7,7 +7,7 @@ const {
 exports.getArticleC = ({ params }, res, next) => {
   fetchArticleM(params)
     .then(article => {
-      res.status(200).send({ article });
+      res.status(200).send(article);
     })
     .catch(err => {
       next(err);

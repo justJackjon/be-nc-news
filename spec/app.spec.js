@@ -3,14 +3,15 @@ const chai = require('chai');
 const { expect } = chai;
 const request = require('supertest');
 const chaiSorted = require('sams-chai-sorted');
+// const chaiJsonPattern = require('chai-json-pattern');
 
 const app = require('../app');
 const connection = require('../db/connection');
-const { checkUserExists } = require('../models/users-m');
 
 chai.use(chaiSorted);
+// chai.use(chaiJsonPattern);
 
-describe.only('/api', () => {
+describe('/api', () => {
   beforeEach(() => connection.seed.run());
   after(() => connection.destroy());
   it("ERROR UNAVAILABLE ROUTES:404 responds with 404 status code and message, 'Not Found'", () => {
@@ -22,7 +23,7 @@ describe.only('/api', () => {
       });
   });
   it("ERROR INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
-    const invalidMethods = ['get', 'post', 'patch', 'put', 'delete'];
+    const invalidMethods = ['post', 'patch', 'put', 'delete'];
     const methodPromises = invalidMethods.map(method => {
       return request(app)
         [method]('/api')
@@ -80,7 +81,7 @@ describe.only('/api', () => {
     });
     it('GET:404 responds with status 404 when client GET requests a user that does not exist', () => {
       return request(app)
-        .get('/api/users/not_a_user_just-some-sneaky-test')
+        .get('/api/users/non-existent_user') // <--- Must match /^[a-z0-9_-]{3,30}$/i
         .expect(404)
         .then(({ body: { msg } }) => {
           expect(msg).to.equal('No Such User');
@@ -92,7 +93,7 @@ describe.only('/api', () => {
         .expect(400)
         .then(({ body: { msg } }) => {
           expect(msg).to.equal(
-            'Invalid Username - Must contain alphanumeric, underscore, or hyphen characters only.'
+            'Invalid Username - Must contain between 3-30 alphanumeric, underscore, or hyphen characters only.'
           );
         });
     });
@@ -444,17 +445,6 @@ describe.only('/api', () => {
   });
 
   describe('/api/articles', () => {
-    describe('checkUserExists model', () => {
-      it('Checks whether the user exists in the database', () => {
-        const doesNotExist = checkUserExists('jackjon').then(result => {
-          expect(result).to.be.false;
-        });
-        const doesExist = checkUserExists('rogersop').then(result => {
-          expect(result).to.be.true;
-        });
-        return Promise.all([doesNotExist, doesExist]);
-      });
-    });
     it("GET:200 respond with status 200 and an articles array of ALL the article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes' and 'comment_count'", () => {
       return request(app)
         .get('/api/articles')
@@ -693,6 +683,20 @@ describe.only('/api', () => {
             expect(msg).to.equal('Bad Request - Malformed comment_id');
           });
       });
+    });
+  });
+  describe('/api', () => {
+    it('GET:200 responds with status 200 and JSON describing all the available endpoints on the API', () => {
+      return request(app)
+        .get('/api')
+        .expect(200)
+        .then(({ body: { endpoints } }) => {
+          expect(endpoints).to.be.a('string');
+          // TRIED TO USE chai-json-pattern BUT ENCOUNTERED A BUG. REVISIT.
+          expect(endpoints).to.include('"GET /api"');
+          expect(endpoints).to.include('"GET /api/topics"');
+          expect(endpoints).to.include('"GET /api/articles"');
+        });
     });
   });
 });
