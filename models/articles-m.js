@@ -68,10 +68,6 @@ const selectArticlesArrayM = ({
 }) => {
   if (order !== 'asc' && order !== 'desc') order = 'desc';
   return fetchTopicsM(topic)
-    .then(({ topics }) => {
-      if (topics.length) return;
-      return Promise.reject({ status: 404, message: 'Topic Not Found' });
-    })
     .then(() => {
       if (!author) return;
       return fetchUserM({ username: author });
@@ -85,8 +81,6 @@ const selectArticlesArrayM = ({
         .groupBy('articles.article_id')
         .modify(query => {
           if (author) return query.where('articles.author', '=', author);
-        })
-        .modify(query => {
           if (topic) return query.where('topic', '=', topic);
         })
         .orderBy(sort_by, order)
