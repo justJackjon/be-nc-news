@@ -9,9 +9,7 @@ exports.getArticleC = ({ params }, res, next) => {
     .then(article => {
       res.status(200).send(article);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(next);
 };
 
 exports.patchArticleC = ({ params, body }, res, next) => {
@@ -19,9 +17,7 @@ exports.patchArticleC = ({ params, body }, res, next) => {
     .then(article => {
       res.status(200).send(article);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(next);
 };
 
 exports.getArticlesArrayC = ({ query }, res, next) => {
@@ -29,7 +25,5 @@ exports.getArticlesArrayC = ({ query }, res, next) => {
     .then(articles => {
       res.status(200).send(articles);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(next);
 };

@@ -10,9 +10,7 @@ exports.postCommentC = ({ params, body }, res, next) => {
     .then(comment => {
       res.status(201).send(comment);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(next);
 };
 
 exports.getCommentsC = ({ params, query }, res, next) => {
@@ -20,9 +18,7 @@ exports.getCommentsC = ({ params, query }, res, next) => {
     .then(comments => {
       res.status(200).send(comments);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(next);
 };
 
 exports.deleteCommentC = ({ params }, res, next) => {
@@ -30,9 +26,7 @@ exports.deleteCommentC = ({ params }, res, next) => {
     .then(() => {
       res.sendStatus(204);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(next);
 };
 
 exports.patchCommentC = ({ params, body }, res, next) => {
@@ -40,7 +34,5 @@ exports.patchCommentC = ({ params, body }, res, next) => {
     .then(comment => {
       res.status(200).send(comment);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(next);
 };
