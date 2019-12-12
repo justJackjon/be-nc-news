@@ -64,35 +64,47 @@ const selectArticlesArrayM = ({
   sort_by = 'created_at',
   order = 'desc',
   author,
-  topic
+  topic,
+  limit = 10,
+  p = 1
 }) => {
   if (order !== 'asc' && order !== 'desc') order = 'desc';
-  return fetchTopicsM(topic)
+  return fetchTopicsM(topic) // <-- add logic to skip this step if topic is undefined.
     .then(() => {
       if (!author) return;
       return fetchUserM({ username: author });
     })
     .then(() => {
-      return connection
-        .select('articles.*')
-        .from('articles')
-        .leftJoin('comments', 'articles.article_id', 'comments.article_id')
-        .count('comment_id as comment_count')
-        .groupBy('articles.article_id')
-        .modify(query => {
-          if (author) return query.where('articles.author', '=', author);
-          if (topic) return query.where('topic', '=', topic);
-        })
-        .orderBy(sort_by, order)
-        .returning('*')
-        .then(articles => {
-          if (articles.length) {
-            articles.forEach(article => {
-              delete article.body;
-            });
-          }
-          return { articles };
-        });
+      return (
+        connection
+          .select('articles.*')
+          .from('articles')
+          .leftJoin('comments', 'articles.article_id', 'comments.article_id')
+          // .count('articles.article_id as total_count')
+          .count('comment_id as comment_count')
+          .groupBy('articles.article_id')
+          .modify(query => {
+            if (author) return query.where('articles.author', '=', author);
+            if (topic) return query.where('topic', '=', topic);
+            // const offset = (p - 1) * limit;
+            // if (offset) return query.offset(offset);
+          })
+          .orderBy(sort_by, order)
+          // .limit(limit)
+          .returning('*')
+          .then(articles => {
+            const totalCount = articles.length;
+            if (totalCount) {
+              const start = (p - 1) * limit;
+              articles = articles.slice(start, start + +limit);
+              articles.forEach(article => {
+                article.total_count = totalCount;
+                delete article.body;
+              });
+            }
+            return { articles };
+          })
+      );
     });
 };
 
