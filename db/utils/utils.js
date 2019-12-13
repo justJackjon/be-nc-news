@@ -1,7 +1,7 @@
-exports.formatDates = list => {
-  return list.map(({ ...newObj }) => {
-    newObj.created_at = new Date(newObj.created_at);
-    return newObj;
+exports.formatDates = articleData => {
+  return list.map(({ ...articleDataCopy }) => {
+    articleDataCopy.created_at = new Date(articleDataCopy.created_at);
+    return articleDataCopy;
   });
 };
 
