@@ -436,7 +436,7 @@ describe('/api', () => {
     });
     it("GET:200 accepts query 'p', which has a default value of 1 and, based upon the limit query, will send a subset of results according to the page number (p) requested", () => {
       const defaultPageDefaultLimit = request(app)
-       // 'Sort_by' and 'order' queries is tested above. Required below for these tests so that each test can always expect the same comment_id to be present at a certain index.
+        // 'Sort_by' and 'order' queries is tested above. Required below for these tests so that each test can always expect the same comment_id to be present at a certain index.
         .get('/api/articles/1/comments?sort_by=comment_id&order=asc')
         .expect(200)
         .then(({ body: { comments } }) => {
@@ -461,7 +461,9 @@ describe('/api', () => {
           expect(comments[2].comment_id).to.equal(18);
         });
       const specifiedPageSpecifiedLimit = request(app)
-        .get('/api/articles/1/comments?p=2&limit=5&sort_by=comment_id&order=asc')
+        .get(
+          '/api/articles/1/comments?p=2&limit=5&sort_by=comment_id&order=asc'
+        )
         .expect(200)
         .then(({ body: { comments } }) => {
           expect(comments.length).to.equal(5);
@@ -502,220 +504,240 @@ describe('/api', () => {
   });
 
   describe('/api/articles', () => {
-    it("GET:200 respond with status 200 and an articles array of ALL the article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes','comment_count' and 'total_count'", () => {
-      return request(app)
-        .get('/api/articles?limit=99') // <--- 'limit' query is tested below - this needs to be specified as number of articles to expect is 12, yet default limit value is 10
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          articles.forEach(article => {
-            expect(article).to.have.keys([
-              'author',
-              'title',
-              'article_id',
-              'topic',
-              'created_at',
-              'votes',
-              'comment_count',
-              'total_count'
-            ]);
+    describe('GET', () => {
+      it("GET:200 respond with status 200 and an articles array of ALL the article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes','comment_count' and 'total_count'", () => {
+        return request(app)
+          .get('/api/articles?limit=99') // <--- 'limit' query is tested below - this needs to be specified as number of articles to expect is 12, yet default limit value is 10
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            articles.forEach(article => {
+              expect(article).to.have.keys([
+                'author',
+                'title',
+                'article_id',
+                'topic',
+                'created_at',
+                'votes',
+                'comment_count',
+                'total_count'
+              ]);
+            });
+            expect(articles.length).to.equal(12);
           });
-          expect(articles.length).to.equal(12);
-        });
-    });
-    it('GET:200 should have a comment_count property which is the total count of all the comments with this article_id', () => {
-      return request(app)
-        .get('/api/articles')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles[0].comment_count).to.equal('13');
-        });
-    });
-    it("GET:200 accepts query 'sort_by', which sorts the articles by any valid column (defaults to created_at [in descending order])", () => {
-      const defaultSort = request(app)
-        .get('/api/articles')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles).to.be.sortedBy('created_at', { descending: true });
-        });
-      const sortedByAuthorDesc = request(app)
-        .get('/api/articles?sort_by=author')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles).to.be.sortedBy('author', {
-            descending: true
+      });
+      it('GET:200 should have a comment_count property which is the total count of all the comments with this article_id', () => {
+        return request(app)
+          .get('/api/articles')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles[0].comment_count).to.equal('13');
           });
-        });
-      return Promise.all([defaultSort, sortedByAuthorDesc]);
-    });
-    it("GET:200 accepts query 'order', which can be set to asc or desc for ascending or descending (defaults to descending)", () => {
-      const testDefault = request(app)
-        .get('/api/articles?sort_by=title')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles).to.be.sortedBy('title', { descending: true });
-        });
-      const testAsc = request(app)
-        .get('/api/articles?sort_by=title&order=asc')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles).to.be.sortedBy('title', { descending: false });
-        });
-      const testDesc = request(app)
-        .get('/api/articles?sort_by=title&order=desc')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles).to.be.sortedBy('title', { descending: true });
-        });
-      return Promise.all([testDefault, testAsc, testDesc]);
-    });
-    it("GET:200 accepts query 'author', which filters the articles by the username value specified in the query", () => {
-      return request(app)
-        .get('/api/articles?author=rogersop')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          articles.forEach(article => {
-            expect(article.author).to.equal('rogersop');
+      });
+      it("GET:200 accepts query 'sort_by', which sorts the articles by any valid column (defaults to created_at [in descending order])", () => {
+        const defaultSort = request(app)
+          .get('/api/articles')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles).to.be.sortedBy('created_at', { descending: true });
           });
-        });
-    });
-    it("GET:200 accepts query 'topic', which filters the articles by the topic value specified in the query", () => {
-      return request(app)
-        .get('/api/articles?topic=mitch')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          articles.forEach(article => {
-            expect(article.topic).to.equal('mitch');
+        const sortedByAuthorDesc = request(app)
+          .get('/api/articles?sort_by=author')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles).to.be.sortedBy('author', {
+              descending: true
+            });
           });
-        });
-    });
-    it("GET:200 accepts query 'limit', which has a default value of 10 and limits the number of articles sent back to the client", () => {
-      const defaultLimit = request(app)
-        .get('/api/articles')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles.length).to.equal(10);
-        });
-      const specifiedLimit = request(app)
-        .get('/api/articles?limit=5')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles.length).to.equal(5);
-        });
-      return Promise.all([defaultLimit, specifiedLimit]);
-    });
-    it("GET:200 accepts query 'p', which has a default value of 1 and, based upon the limit query, will send a subset of results according to the page number (p) requested", () => {
-      const defaultPageDefaultLimit = request(app)
-        .get('/api/articles')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles.length).to.equal(10);
-          articles.forEach((article, index) => {
-            expect(article.article_id).to.equal(index + 1);
+        return Promise.all([defaultSort, sortedByAuthorDesc]);
+      });
+      it("GET:200 accepts query 'order', which can be set to asc or desc for ascending or descending (defaults to descending)", () => {
+        const testDefault = request(app)
+          .get('/api/articles?sort_by=title')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles).to.be.sortedBy('title', { descending: true });
           });
-        });
-      const defaultPageSpecifiedLimit = request(app)
-        .get('/api/articles?limit=5')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles.length).to.equal(5);
-          articles.forEach((article, index) => {
-            expect(article.article_id).to.equal(index + 1);
+        const testAsc = request(app)
+          .get('/api/articles?sort_by=title&order=asc')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles).to.be.sortedBy('title', { descending: false });
           });
-        });
-      const specifiedPageDefaultLimit = request(app)
-        .get('/api/articles?p=2')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles.length).to.equal(2); // <-- There are only 12 articles in the test database, so the second page of results should equal 2
-          articles.forEach((article, index) => {
-            expect(article.article_id).to.equal(index + 11);
+        const testDesc = request(app)
+          .get('/api/articles?sort_by=title&order=desc')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles).to.be.sortedBy('title', { descending: true });
           });
-        });
-      const specifiedPageSpecifiedLimit = request(app)
-        .get('/api/articles?p=2&limit=5')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles.length).to.equal(5);
-          articles.forEach((article, index) => {
-            expect(article.article_id).to.equal(index + 6);
+        return Promise.all([testDefault, testAsc, testDesc]);
+      });
+      it("GET:200 accepts query 'author', which filters the articles by the username value specified in the query", () => {
+        return request(app)
+          .get('/api/articles?author=rogersop')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            articles.forEach(article => {
+              expect(article.author).to.equal('rogersop');
+            });
           });
-        });
-      return Promise.all([
-        defaultPageDefaultLimit,
-        defaultPageSpecifiedLimit,
-        specifiedPageDefaultLimit,
-        specifiedPageSpecifiedLimit
-      ]);
-    });
-    it("GET:200 should have a total_count property, displaying the total number of articles with any filters applied, discounting any limit specified in the 'limit' query (defaults at 10)", () => {
-      const countAuthor = request(app)
-        .get('/api/articles?author=icellusedkars&limit=2')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles.length).to.equal(2);
-          articles.forEach(article => {
-            expect(article.total_count).to.equal(6);
+      });
+      it("GET:200 accepts query 'topic', which filters the articles by the topic value specified in the query", () => {
+        return request(app)
+          .get('/api/articles?topic=mitch')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            articles.forEach(article => {
+              expect(article.topic).to.equal('mitch');
+            });
           });
-        });
-      const countTopic = request(app)
-        .get('/api/articles?topic=mitch&limit=3')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles.length).to.equal(3);
-          articles.forEach(article => {
-            expect(article.total_count).to.equal(11);
+      });
+      it("GET:200 accepts query 'limit', which has a default value of 10 and limits the number of articles sent back to the client", () => {
+        const defaultLimit = request(app)
+          .get('/api/articles')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles.length).to.equal(10);
           });
-        });
-      return Promise.all([countAuthor, countTopic]);
+        const specifiedLimit = request(app)
+          .get('/api/articles?limit=5')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles.length).to.equal(5);
+          });
+        return Promise.all([defaultLimit, specifiedLimit]);
+      });
+      it("GET:200 accepts query 'p', which has a default value of 1 and, based upon the limit query, will send a subset of results according to the page number (p) requested", () => {
+        const defaultPageDefaultLimit = request(app)
+          .get('/api/articles')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles.length).to.equal(10);
+            articles.forEach((article, index) => {
+              expect(article.article_id).to.equal(index + 1);
+            });
+          });
+        const defaultPageSpecifiedLimit = request(app)
+          .get('/api/articles?limit=5')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles.length).to.equal(5);
+            articles.forEach((article, index) => {
+              expect(article.article_id).to.equal(index + 1);
+            });
+          });
+        const specifiedPageDefaultLimit = request(app)
+          .get('/api/articles?p=2')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles.length).to.equal(2); // <-- There are only 12 articles in the test database, so the second page of results should equal 2
+            articles.forEach((article, index) => {
+              expect(article.article_id).to.equal(index + 11);
+            });
+          });
+        const specifiedPageSpecifiedLimit = request(app)
+          .get('/api/articles?p=2&limit=5')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles.length).to.equal(5);
+            articles.forEach((article, index) => {
+              expect(article.article_id).to.equal(index + 6);
+            });
+          });
+        return Promise.all([
+          defaultPageDefaultLimit,
+          defaultPageSpecifiedLimit,
+          specifiedPageDefaultLimit,
+          specifiedPageSpecifiedLimit
+        ]);
+      });
+      it("GET:200 should have a total_count property, displaying the total number of articles with any filters applied, discounting any limit specified in the 'limit' query (defaults at 10)", () => {
+        const countAuthor = request(app)
+          .get('/api/articles?author=icellusedkars&limit=2')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles.length).to.equal(2);
+            articles.forEach(article => {
+              expect(article.total_count).to.equal(6);
+            });
+          });
+        const countTopic = request(app)
+          .get('/api/articles?topic=mitch&limit=3')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles.length).to.equal(3);
+            articles.forEach(article => {
+              expect(article.total_count).to.equal(11);
+            });
+          });
+        return Promise.all([countAuthor, countTopic]);
+      });
+      it('ERROR GET:200 responds with status 200 and an empty array when client requests articles for a topic that does exist, but has no articles', () => {
+        return request(app)
+          .get('/api/articles?topic=paper')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles).to.eql([]);
+          });
+      });
+      it("ERROR GET:404 responds with status 404 and 'No Such User' when the client requests a user that does not exist in the database", () => {
+        return request(app)
+          .get('/api/articles?author=not-an-author')
+          .expect(404)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('No Such User');
+          });
+      });
+      it('ERROR GET:404 responds with status 404 when provided with a non-existent topic', () => {
+        return request(app)
+          .get('/api/articles?topic=not-a-topic')
+          .expect(404)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Topic Not Found');
+          });
+      });
+      it("ERROR GET:400 responds with status 400 if client attempts to sort_by a column that doesn't exist", () => {
+        return request(app)
+          .get('/api/articles?sort_by=non-existent-column')
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('This Column Does Not Exist');
+          });
+      });
+      it("ERROR GET:200 responds with status 200 and defaults to descending order if the 'order' query value is malformed (!=='asc'/'desc')", () => {
+        return request(app)
+          .get('/api/articles?order=not-a-valid-query-value')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles).to.be.sortedBy('created_at', { descending: true });
+          });
+      });
+      it('ERROR GET:200 responds with status 200 and an empty array if author exists but does not have any articles associated with them', () => {
+        return request(app)
+          .get('/api/articles?author=lurker')
+          .expect(200)
+          .then(({ body: { articles } }) => {
+            expect(articles).to.be.an('array');
+            expect(articles).to.eql([]);
+          });
+      });
     });
-    it('ERROR GET:200 responds with status 200 and an empty array when client requests articles for a topic that does exist, but has no articles', () => {
-      return request(app)
-        .get('/api/articles?topic=paper')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles).to.eql([]);
-        });
-    });
-    it("ERROR GET:404 responds with status 404 and 'No Such User' when the client requests a user that does not exist in the database", () => {
-      return request(app)
-        .get('/api/articles?author=not-an-author')
-        .expect(404)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('No Such User');
-        });
-    });
-    it('ERROR GET:404 responds with status 404 when provided with a non-existent topic', () => {
-      return request(app)
-        .get('/api/articles?topic=not-a-topic')
-        .expect(404)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('Topic Not Found');
-        });
-    });
-    it("ERROR GET:400 responds with status 400 if client attempts to sort_by a column that doesn't exist", () => {
-      return request(app)
-        .get('/api/articles?sort_by=non-existent-column')
-        .expect(400)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('This Column Does Not Exist');
-        });
-    });
-    it("ERROR GET:200 responds with status 200 and defaults to descending order if the 'order' query value is malformed (!=='asc'/'desc')", () => {
-      return request(app)
-        .get('/api/articles?order=not-a-valid-query-value')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles).to.be.sortedBy('created_at', { descending: true });
-        });
-    });
-    it('ERROR GET:200 responds with status 200 and an empty array if author exists but does not have any articles associated with them', () => {
-      return request(app)
-        .get('/api/articles?author=lurker')
-        .expect(200)
-        .then(({ body: { articles } }) => {
-          expect(articles).to.be.an('array');
-          expect(articles).to.eql([]);
-        });
+    describe('POST', () => {
+      it('POST:201 responds with status 201 and the posted article, accepting an object with author, topic, title and body properties in the request body', () => {
+        console.log('<<< TEMPORARY TEST >>>');
+        console.log('<<< Endpoint under construction >>>');
+        return request(app)
+          .post('/api/articles')
+          .send({
+            author: 'rogersop',
+            topic: 'mitch',
+            title: 'test-title',
+            body: 'test-body'
+          })
+          .expect(201)
+          .then(({ body: { article } }) => {
+            expect(article).to.be.an('object');
+          });
+      });
     });
   });
 

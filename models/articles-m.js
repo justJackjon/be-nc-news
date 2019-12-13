@@ -108,8 +108,13 @@ const selectArticlesArrayM = ({
     });
 };
 
-const insertArticleM = () => {
-  console.log('in the insertArticleM model!');
+const insertArticleM = ({ author, topic, title, body }) => {
+  return connection('articles')
+    .insert({ author, topic, title, body })
+    .returning('*')
+    .then(([article]) => {
+      return { article };
+    });
 };
 
 module.exports = {

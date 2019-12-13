@@ -29,7 +29,10 @@ exports.getArticlesArrayC = ({ query }, res, next) => {
     .catch(next);
 };
 
-exports.postArticleC = (req, res, next) => {
-  console.log('in the postArticleC controller');
-  insertArticleM();
+exports.postArticleC = ({ body }, res, next) => {
+  insertArticleM(body)
+    .then(article => {
+      res.status(201).send(article);
+    })
+    .catch(next);
 };

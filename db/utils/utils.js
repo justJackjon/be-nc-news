@@ -5,9 +5,9 @@ exports.formatDates = articleData => {
   });
 };
 
-exports.makeRefObj = list => {
+exports.makeRefObj = articleData => {
   return Object.fromEntries(
-    list.map(article => [article.title, article.article_id])
+    articleData.map(article => [article.title, article.article_id])
   );
 };
 
