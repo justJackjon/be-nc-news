@@ -14,6 +14,20 @@ chai.use(chaiSorted);
 describe('/api', () => {
   beforeEach(() => connection.seed.run());
   after(() => connection.destroy());
+  describe('GET', () => {
+    it('GET:200 responds with status 200 and JSON describing all the available endpoints on the API', () => {
+      return request(app)
+        .get('/api')
+        .expect(200)
+        .then(({ body }) => {
+          expect(body).to.be.a('string');
+          // TRIED TO USE chai-json-pattern BUT ENCOUNTERED A BUG. REVISIT.
+          expect(body).to.include('"GET /api"');
+          expect(body).to.include('"GET /api/topics"');
+          expect(body).to.include('"GET /api/articles"');
+        });
+    });
+  });
   it("ERROR UNAVAILABLE ROUTES:404 responds with 404 status code and message, 'Not Found'", () => {
     return request(app)
       .get('/api/not-a-path')
@@ -35,40 +49,61 @@ describe('/api', () => {
     return Promise.all(methodPromises);
   });
   describe('/topics', () => {
-    it('GET:200 responds with an array of topic objects, each of which should have slug and description properties', () => {
-      return request(app)
-        .get('/api/topics')
-        .then(({ body: { topics } }) => {
-          expect(topics).to.be.an('array');
-          topics.forEach(topic => {
-            expect(topic).to.have.keys(['slug', 'description']);
+    describe('GET', () => {
+      it('GET:200 responds with an array of topic objects, each of which should have slug and description properties', () => {
+        return request(app)
+          .get('/api/topics')
+          .then(({ body: { topics } }) => {
+            expect(topics).to.be.an('array');
+            topics.forEach(topic => {
+              expect(topic).to.have.keys(['slug', 'description']);
+            });
+            // console.log(topics[0]); possible add more robust testing here??
           });
-          // console.log(topics[0]); possible add more robust testing here??
-        });
+      });
+      it('ERROR GET:404 responds with 404 status code when providing a bad path', () => {
+        return request(app)
+          .get('/api/not-topics')
+          .expect(404)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Not Found');
+          });
+      });
     });
-    it('ERROR GET:404 responds with 404 status code when provided with a non existent topic', () => {
-      return request(app)
-        .get('/api/not-a-topic')
-        .expect(404)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('Not Found');
-        });
-    });
-    it('POST:201 responds with status 201 and the posted topic, accepting an object with slug and description properties in the request body', () => {
-      return request(app)
-        .post('/api/topics')
-        .send({ slug: 'test slug', description: 'test description' })
-        .expect(201)
-        .then(({ body: { topic } }) => {
-          expect(topic).to.have.keys(['slug', 'description']);
-          expect(topic.slug).to.equal('test slug');
-          expect(topic.description).to.equal('test description');
-          return request(app).get('/api/topics');
-        })
-        .then(({ body: { topics } }) => {
-          expect(topics).to.be.an('array');
-          expect(topics.length).to.equal(4); // <-- there are only 3 topics in the test db before the POST request.
-        });
+    describe('POST', () => {
+      it('POST:201 responds with status 201 and the posted topic, accepting an object with slug and description properties in the request body', () => {
+        return request(app)
+          .post('/api/topics')
+          .send({ slug: 'test slug', description: 'test description' })
+          .expect(201)
+          .then(({ body: { topic } }) => {
+            expect(topic).to.have.keys(['slug', 'description']);
+            expect(topic.slug).to.equal('test slug');
+            expect(topic.description).to.equal('test description');
+            return request(app).get('/api/topics');
+          })
+          .then(({ body: { topics } }) => {
+            expect(topics).to.be.an('array');
+            expect(topics.length).to.equal(4); // <-- there are only 3 topics in the test db before the POST request.
+          });
+      });
+      it('ERROR POST:400 responds with status 400 when POST request does not include all the required keys', () => {
+        const missingSlug = request(app)
+          .post('/api/topics')
+          .send({ description: 'test description' })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
+          });
+        const missingDescription = request(app)
+          .post('/api/topics')
+          .send({ description: 'test description' })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
+          });
+        return Promise.all([missingSlug, missingDescription]);
+      });
     });
     it("ERROR INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
       const invalidMethods = ['patch', 'put', 'delete'];
@@ -85,72 +120,110 @@ describe('/api', () => {
   });
 
   describe('/users', () => {
-    it("GET:200 responds with status 200 and a users array of ALL the user objects, each of which should have the following properties: 'username', 'name' and 'avatar_url'", () => {
-      return request(app)
-        .get('/api/users')
-        .expect(200)
-        .then(({ body: { users } }) => {
-          expect(users).to.be.an('array');
-          users.forEach(user => {
-            expect(user).to.have.keys(['username', 'name', 'avatar_url']);
+    describe('GET', () => {
+      it("GET:200 responds with status 200 and a users array of ALL the user objects, each of which should have the following properties: 'username', 'name' and 'avatar_url'", () => {
+        return request(app)
+          .get('/api/users')
+          .expect(200)
+          .then(({ body: { users } }) => {
+            expect(users).to.be.an('array');
+            users.forEach(user => {
+              expect(user).to.have.keys(['username', 'name', 'avatar_url']);
+            });
+            expect(users.length).to.equal(4); // <-- there are only 4 users in the test db
           });
-          expect(users.length).to.equal(4); // <-- there are only 4 users in the test db
-        });
+      });
     });
-    it('POST:201 responds with status 201 and the posted user, accepting an object with username, name and avatar_url properties in the request body', () => {
-      return request(app)
-        .post('/api/users')
-        .send({
-          username: 'test_user',
-          name: 'test name',
-          avatar_url:
-            'https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png'
-        })
-        .expect(201)
-        .then(({ body: { user } }) => {
-          expect(user).to.have.keys(['username', 'name', 'avatar_url']);
-          expect(user.username).to.equal('test_user');
-          expect(user.name).to.equal('test name');
-          expect(user.avatar_url).to.equal(
-            'https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png'
-          );
-          return request(app).get('/api/users');
-        })
-        .then(({ body: { users } }) => {
-          expect(users).to.be.an('array');
-          expect(users.length).to.equal(5); // <-- there are only 4 users in the test db before the POST request.
-        });
+    describe('POST', () => {
+      it('POST:201 responds with status 201 and the posted user, accepting an object with username, name and avatar_url properties in the request body', () => {
+        return request(app)
+          .post('/api/users')
+          .send({
+            username: 'test_user',
+            name: 'test name',
+            avatar_url:
+              'https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png'
+          })
+          .expect(201)
+          .then(({ body: { user } }) => {
+            expect(user).to.have.keys(['username', 'name', 'avatar_url']);
+            expect(user.username).to.equal('test_user');
+            expect(user.name).to.equal('test name');
+            expect(user.avatar_url).to.equal(
+              'https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png'
+            );
+            return request(app).get('/api/users');
+          })
+          .then(({ body: { users } }) => {
+            expect(users).to.be.an('array');
+            expect(users.length).to.equal(5); // <-- there are only 4 users in the test db before the POST request.
+          });
+      });
+      it('ERROR POST:400 responds with status 400 when POST request does not include all the required keys', () => {
+        const missingUsername = request(app)
+          .post('/api/users')
+          .send({
+            name: 'test name',
+            avatar_url:
+              'https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png'
+          })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
+          });
+        const missingName = request(app)
+          .post('/api/users')
+          .send({
+            username: 'test_user',
+            avatar_url:
+              'https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png'
+          })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
+          });
+        const missingAvatarUrl = request(app)
+          .post('/api/users')
+          .send({
+            username: 'test_user',
+            name: 'test name'
+          })
+          .expect(201); // <--- NOT a required key.
+        return Promise.all([missingUsername, missingName, missingAvatarUrl]);
+      });
     });
   });
 
   describe('/users/:username', () => {
-    it('GET:200 responds with a user object which should have username, avatar_url and name properties', () => {
-      return request(app)
-        .get('/api/users/butter_bridge')
-        .expect(200)
-        .then(({ body: { user } }) => {
-          expect(user).to.be.an('object');
-          expect(user).to.have.keys(['username', 'avatar_url', 'name']);
-          expect(user.username).to.equal('butter_bridge');
-        });
-    });
-    it('GET:404 responds with status 404 when client GET requests a user that does not exist', () => {
-      return request(app)
-        .get('/api/users/non-existent_user') // <--- Must match /^[a-z0-9_-]{3,30}$/i
-        .expect(404)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('No Such User');
-        });
-    });
-    it('ERROR GET:400 responds with 400 status code when url contains malformed/invalid username. Username must contain alphanumeric, underscore, or hyphen characters only.', () => {
-      return request(app)
-        .get('/api/users/!!!I AM AN INVALID USERNAME!!!!')
-        .expect(400)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal(
-            'Invalid Username - Must contain between 3-30 alphanumeric, underscore, or hyphen characters only.'
-          );
-        });
+    describe('GET', () => {
+      it('GET:200 responds with a user object which should have username, avatar_url and name properties', () => {
+        return request(app)
+          .get('/api/users/butter_bridge')
+          .expect(200)
+          .then(({ body: { user } }) => {
+            expect(user).to.be.an('object');
+            expect(user).to.have.keys(['username', 'avatar_url', 'name']);
+            expect(user.username).to.equal('butter_bridge');
+          });
+      });
+      it('GET:404 responds with status 404 when client GET requests a user that does not exist', () => {
+        return request(app)
+          .get('/api/users/non-existent_user') // <--- Must match /^[a-z0-9_-]{3,30}$/i
+          .expect(404)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('No Such User');
+          });
+      });
+      it('ERROR GET:400 responds with 400 status code when url contains malformed/invalid username. Username must contain alphanumeric, underscore, or hyphen characters only.', () => {
+        return request(app)
+          .get('/api/users/!!!I AM AN INVALID USERNAME!!!!')
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal(
+              'Invalid Username - Must contain between 3-30 alphanumeric, underscore, or hyphen characters only.'
+            );
+          });
+      });
     });
     it("INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
       const invalidMethods = ['post', 'patch', 'put', 'delete'];
@@ -351,6 +424,22 @@ describe('/api', () => {
               });
           });
       });
+      it('ERROR DELETE:404 responds with status 404 if the article requested does not exist within the database', () => {
+        return request(app)
+          .delete('/api/articles/999999999')
+          .expect(404)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('No Article Found, Nothing To Delete');
+          });
+      });
+      it('ERROR DELETE:400 responds with status 400 if the article_id is not a valid number', () => {
+        return request(app)
+          .delete('/api/articles/NaN')
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request - Malformed article_id');
+          });
+      });
     });
     it("INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
       const invalidMethods = ['post', 'put'];
@@ -367,229 +456,233 @@ describe('/api', () => {
   });
 
   describe('/articles/:article_id/comments', () => {
-    it('POST:201 responds with status 201 and the posted comment, accepting an object with username and body properties in the request body', () => {
-      return request(app)
-        .post('/api/articles/1/comments')
-        .send({ username: 'butter_bridge', body: 'test comment' })
-        .expect(201)
-        .then(({ body: { comment } }) => {
-          expect(comment).to.have.keys([
-            'comment_id',
-            'author',
-            'article_id',
-            'votes',
-            'created_at',
-            'body'
-          ]);
-          expect(comment.author).to.equal('butter_bridge');
-          expect(comment.body).to.equal('test comment');
-          expect(comment.article_id).to.equal(1);
-          return request(app).get('/api/articles/1/comments?limit=99');
-        })
-        .then(({ body: { comments } }) => {
-          expect(comments).to.be.an('array');
-          expect(comments.length).to.equal(14); // <-- there are only 13 comments for article_id 1 in the test db before the POST request.
-        });
+    describe('GET', () => {
+      it("GET:200 responds with status 200 and an articles array of article objects, each of which should have the following properties: 'article_id', 'comment_id', 'votes', 'created_at', 'author', 'body'", () => {
+        return request(app)
+          .get('/api/articles/1/comments?limit=99') // <--- limit query is tested below...
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            comments.forEach(comment => {
+              expect(comment).to.have.keys([
+                'article_id',
+                'comment_id',
+                'votes',
+                'created_at',
+                'author',
+                'body'
+              ]);
+            });
+            expect(comments.length).to.equal(13);
+          });
+      });
+      it('GET:200 responds with status 200 and only returns an array of article objects which match the correct article_id', () => {
+        const checkId1 = request(app)
+          .get('/api/articles/1/comments')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            comments.forEach(comment => {
+              expect(comment.article_id).to.equal(1);
+            });
+          });
+        const checkId5 = request(app)
+          .get('/api/articles/5/comments')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            comments.forEach(comment => {
+              expect(comment.article_id).to.equal(5);
+            });
+          });
+        const checkId6 = request(app)
+          .get('/api/articles/6/comments')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            comments.forEach(comment => {
+              expect(comment.article_id).to.equal(6);
+            });
+          });
+        const checkId9 = request(app)
+          .get('/api/articles/9/comments')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            comments.forEach(comment => {
+              expect(comment.article_id).to.equal(9);
+            });
+          });
+        return Promise.all([checkId1, checkId5, checkId6, checkId9]);
+      });
+      it("GET:200 accepts query 'sort_by', which sorts the comments by any valid column (defaults to created_at [in descending order])", () => {
+        const defaultSort = request(app)
+          .get('/api/articles/1/comments')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments).to.be.sortedBy('created_at', { descending: true });
+          });
+        const sortedByVotesDesc = request(app)
+          .get('/api/articles/1/comments?sort_by=votes')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments).to.be.sortedBy('votes', { descending: true });
+          });
+        return Promise.all([defaultSort, sortedByVotesDesc]);
+      });
+      it("GET:200 accepts query 'order', which can be set to asc or desc for ascending or descending (defaults to descending)", () => {
+        const testDefault = request(app)
+          .get('/api/articles/1/comments?sort_by=author')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments).to.be.sortedBy('author', { descending: true });
+          });
+        const testAsc = request(app)
+          .get('/api/articles/1/comments?sort_by=author&order=asc')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments).to.be.sortedBy('author', { descending: false });
+          });
+        const testDesc = request(app)
+          .get('/api/articles/1/comments?sort_by=author&order=desc')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments).to.be.sortedBy('author', { descending: true });
+          });
+        return Promise.all([testDefault, testAsc, testDesc]);
+      });
+      it("GET:200 accepts query 'limit', which has a default value of 10 and limits the number of comments sent back to the client", () => {
+        const defaultLimit = request(app)
+          .get('/api/articles/1/comments')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments.length).to.equal(10);
+          });
+        const specifiedLimit = request(app)
+          .get('/api/articles/1/comments?limit=5')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments.length).to.equal(5);
+          });
+        return Promise.all([defaultLimit, specifiedLimit]);
+      });
+      it("GET:200 accepts query 'p', which has a default value of 1 and, based upon the limit query, will send a subset of results according to the page number (p) requested", () => {
+        const defaultPageDefaultLimit = request(app)
+          // 'Sort_by' and 'order' queries is tested above. Required below for these tests so that each test can always expect the same comment_id to be present at a certain index.
+          .get('/api/articles/1/comments?sort_by=comment_id&order=asc')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments.length).to.equal(10);
+            expect(comments[0].comment_id).to.equal(2);
+            expect(comments[9].comment_id).to.equal(11);
+          });
+        const defaultPageSpecifiedLimit = request(app)
+          .get('/api/articles/1/comments?limit=5&sort_by=comment_id&order=asc')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments.length).to.equal(5);
+            expect(comments[0].comment_id).to.equal(2);
+            expect(comments[4].comment_id).to.equal(6);
+          });
+        const specifiedPageDefaultLimit = request(app)
+          .get('/api/articles/1/comments?p=2&sort_by=comment_id&order=asc')
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments.length).to.equal(3); // <-- There are only 13 comments for article_id 1 in the test database, so the second page of results should equal 3
+            expect(comments[0].comment_id).to.equal(12);
+            expect(comments[2].comment_id).to.equal(18);
+          });
+        const specifiedPageSpecifiedLimit = request(app)
+          .get(
+            '/api/articles/1/comments?p=2&limit=5&sort_by=comment_id&order=asc'
+          )
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments.length).to.equal(5);
+            expect(comments[0].comment_id).to.equal(7);
+            expect(comments[4].comment_id).to.equal(11);
+          });
+        return Promise.all([
+          defaultPageDefaultLimit,
+          defaultPageSpecifiedLimit,
+          specifiedPageDefaultLimit,
+          specifiedPageSpecifiedLimit
+        ]);
+      });
+      it('ERROR GET:200 responds with 200 status code and an empty array when client GET requests an article with no comments', () => {
+        return request(app)
+          .get('/api/articles/2/comments') // article_ids 1, 5, 6 and 9 have comments
+          .expect(200)
+          .then(({ body: { comments } }) => {
+            expect(comments).to.eql([]);
+          });
+      });
+      it('ERROR GET:400 responds with 400 status code when url contains malformed/invalid article_id', () => {
+        return request(app)
+          .get('/api/articles/i-am-a-dog-and-not-an-id/comments')
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Invalid Input Syntax');
+          });
+      });
+      it('ERROR GET:404 responds with 404 status code when when given a valid article_id that does not exist', () => {
+        return request(app)
+          .get('/api/articles/1000/comments')
+          .expect(404)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('No Such Article');
+          });
+      });
     });
-    it('ERROR POST:400 responds with status 400 when POST request does not include all the required keys', () => {
-      const missingBody = request(app)
-        .post('/api/articles/1/comments')
-        .send({ username: 'butter_bridge' })
-        .expect(400)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('Bad Request');
-        });
-      const missingUsername = request(app)
-        .post('/api/articles/1/comments')
-        .send({ body: 'test comment' })
-        .expect(400)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('Bad Request');
-        });
-      return Promise.all([missingBody, missingUsername]);
-    });
-    it('ERROR POST:400 responds with 400 status code when url contains malformed/invalid article_id', () => {
-      return request(app)
-        .post('/api/articles/i-am-a-dog-and-not-an-id/comments')
-        .expect(400)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('Invalid Input Syntax');
-        });
-    });
-    it("GET:200 responds with status 200 and an articles array of article objects, each of which should have the following properties: 'article_id', 'comment_id', 'votes', 'created_at', 'author', 'body'", () => {
-      return request(app)
-        .get('/api/articles/1/comments?limit=99') // <--- limit query is tested below...
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          comments.forEach(comment => {
+    describe('POST', () => {
+      it('POST:201 responds with status 201 and the posted comment, accepting an object with username and body properties in the request body', () => {
+        return request(app)
+          .post('/api/articles/1/comments')
+          .send({ username: 'butter_bridge', body: 'test comment' })
+          .expect(201)
+          .then(({ body: { comment } }) => {
             expect(comment).to.have.keys([
-              'article_id',
               'comment_id',
+              'author',
+              'article_id',
               'votes',
               'created_at',
-              'author',
               'body'
             ]);
-          });
-          expect(comments.length).to.equal(13);
-        });
-    });
-    it('GET:200 responds with status 200 and only returns an array of article objects which match the correct article_id', () => {
-      const checkId1 = request(app)
-        .get('/api/articles/1/comments')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          comments.forEach(comment => {
+            expect(comment.author).to.equal('butter_bridge');
+            expect(comment.body).to.equal('test comment');
             expect(comment.article_id).to.equal(1);
+            return request(app).get('/api/articles/1/comments?limit=99');
+          })
+          .then(({ body: { comments } }) => {
+            expect(comments).to.be.an('array');
+            expect(comments.length).to.equal(14); // <-- there are only 13 comments for article_id 1 in the test db before the POST request.
           });
-        });
-      const checkId5 = request(app)
-        .get('/api/articles/5/comments')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          comments.forEach(comment => {
-            expect(comment.article_id).to.equal(5);
+      });
+      it('ERROR POST:400 responds with status 400 when POST request does not include all the required keys', () => {
+        const missingBody = request(app)
+          .post('/api/articles/1/comments')
+          .send({ username: 'butter_bridge' })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
           });
-        });
-      const checkId6 = request(app)
-        .get('/api/articles/6/comments')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          comments.forEach(comment => {
-            expect(comment.article_id).to.equal(6);
+        const missingUsername = request(app)
+          .post('/api/articles/1/comments')
+          .send({ body: 'test comment' })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
           });
-        });
-      const checkId9 = request(app)
-        .get('/api/articles/9/comments')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          comments.forEach(comment => {
-            expect(comment.article_id).to.equal(9);
+        return Promise.all([missingBody, missingUsername]);
+      });
+      it('ERROR POST:400 responds with 400 status code when url contains malformed/invalid article_id', () => {
+        return request(app)
+          .post('/api/articles/i-am-a-dog-and-not-an-id/comments')
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Invalid Input Syntax');
           });
-        });
-      return Promise.all([checkId1, checkId5, checkId6, checkId9]);
-    });
-    it("GET:200 accepts query 'sort_by', which sorts the comments by any valid column (defaults to created_at [in descending order])", () => {
-      const defaultSort = request(app)
-        .get('/api/articles/1/comments')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments).to.be.sortedBy('created_at', { descending: true });
-        });
-      const sortedByVotesDesc = request(app)
-        .get('/api/articles/1/comments?sort_by=votes')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments).to.be.sortedBy('votes', { descending: true });
-        });
-      return Promise.all([defaultSort, sortedByVotesDesc]);
-    });
-    it("GET:200 accepts query 'order', which can be set to asc or desc for ascending or descending (defaults to descending)", () => {
-      const testDefault = request(app)
-        .get('/api/articles/1/comments?sort_by=author')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments).to.be.sortedBy('author', { descending: true });
-        });
-      const testAsc = request(app)
-        .get('/api/articles/1/comments?sort_by=author&order=asc')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments).to.be.sortedBy('author', { descending: false });
-        });
-      const testDesc = request(app)
-        .get('/api/articles/1/comments?sort_by=author&order=desc')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments).to.be.sortedBy('author', { descending: true });
-        });
-      return Promise.all([testDefault, testAsc, testDesc]);
-    });
-    it("GET:200 accepts query 'limit', which has a default value of 10 and limits the number of comments sent back to the client", () => {
-      const defaultLimit = request(app)
-        .get('/api/articles/1/comments')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments.length).to.equal(10);
-        });
-      const specifiedLimit = request(app)
-        .get('/api/articles/1/comments?limit=5')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments.length).to.equal(5);
-        });
-      return Promise.all([defaultLimit, specifiedLimit]);
-    });
-    it("GET:200 accepts query 'p', which has a default value of 1 and, based upon the limit query, will send a subset of results according to the page number (p) requested", () => {
-      const defaultPageDefaultLimit = request(app)
-        // 'Sort_by' and 'order' queries is tested above. Required below for these tests so that each test can always expect the same comment_id to be present at a certain index.
-        .get('/api/articles/1/comments?sort_by=comment_id&order=asc')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments.length).to.equal(10);
-          expect(comments[0].comment_id).to.equal(2);
-          expect(comments[9].comment_id).to.equal(11);
-        });
-      const defaultPageSpecifiedLimit = request(app)
-        .get('/api/articles/1/comments?limit=5&sort_by=comment_id&order=asc')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments.length).to.equal(5);
-          expect(comments[0].comment_id).to.equal(2);
-          expect(comments[4].comment_id).to.equal(6);
-        });
-      const specifiedPageDefaultLimit = request(app)
-        .get('/api/articles/1/comments?p=2&sort_by=comment_id&order=asc')
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments.length).to.equal(3); // <-- There are only 13 comments for article_id 1 in the test database, so the second page of results should equal 3
-          expect(comments[0].comment_id).to.equal(12);
-          expect(comments[2].comment_id).to.equal(18);
-        });
-      const specifiedPageSpecifiedLimit = request(app)
-        .get(
-          '/api/articles/1/comments?p=2&limit=5&sort_by=comment_id&order=asc'
-        )
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments.length).to.equal(5);
-          expect(comments[0].comment_id).to.equal(7);
-          expect(comments[4].comment_id).to.equal(11);
-        });
-      return Promise.all([
-        defaultPageDefaultLimit,
-        defaultPageSpecifiedLimit,
-        specifiedPageDefaultLimit,
-        specifiedPageSpecifiedLimit
-      ]);
-    });
-    it('ERROR GET:200 responds with 200 status code and an empty array when client GET requests an article with no comments', () => {
-      return request(app)
-        .get('/api/articles/2/comments') // article_ids 1, 5, 6 and 9 have comments
-        .expect(200)
-        .then(({ body: { comments } }) => {
-          expect(comments).to.eql([]);
-        });
-    });
-    it('ERROR GET:400 responds with 400 status code when url contains malformed/invalid article_id', () => {
-      return request(app)
-        .get('/api/articles/i-am-a-dog-and-not-an-id/comments')
-        .expect(400)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('Invalid Input Syntax');
-        });
-    });
-    it('ERROR GET:404 responds with 404 status code when when given a valid article_id that does not exist', () => {
-      return request(app)
-        .get('/api/articles/1000/comments')
-        .expect(404)
-        .then(({ body: { msg } }) => {
-          expect(msg).to.equal('No Such Article');
-        });
+      });
     });
   });
 
-  describe('/api/articles', () => {
+  describe('/articles', () => {
     describe('GET', () => {
       it("GET:200 responds with status 200 and an articles array of ALL the article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes','comment_count' and 'total_count'", () => {
         return request(app)
@@ -840,6 +933,58 @@ describe('/api', () => {
             expect(articles.length).to.equal(13); // <-- there are only 12 articles in the test db before the POST request.
           });
       });
+      it('ERROR POST:400 responds with status 400 when POST request does not include all the required keys', () => {
+        const missingAuthor = request(app)
+          .post('/api/articles')
+          .send({
+            topic: 'mitch',
+            title: 'test title',
+            body: 'test body'
+          })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
+          });
+        const missingTopic = request(app)
+          .post('/api/articles')
+          .send({
+            author: 'rogersop',
+            title: 'test title',
+            body: 'test body'
+          })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
+          });
+        const missingTitle = request(app)
+          .post('/api/articles')
+          .send({
+            author: 'rogersop',
+            topic: 'mitch',
+            body: 'test body'
+          })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
+          });
+        const missingBody = request(app)
+          .post('/api/articles')
+          .send({
+            author: 'rogersop',
+            topic: 'mitch',
+            title: 'test title'
+          })
+          .expect(400)
+          .then(({ body: { msg } }) => {
+            expect(msg).to.equal('Bad Request');
+          });
+        return Promise.all([
+          missingAuthor,
+          missingTopic,
+          missingTitle,
+          missingBody
+        ]);
+      });
     });
   });
 
@@ -944,20 +1089,6 @@ describe('/api', () => {
             expect(msg).to.equal('Bad Request - Malformed comment_id');
           });
       });
-    });
-  });
-  describe('/api', () => {
-    it('GET:200 responds with status 200 and JSON describing all the available endpoints on the API', () => {
-      return request(app)
-        .get('/api')
-        .expect(200)
-        .then(({ body }) => {
-          expect(body).to.be.a('string');
-          // TRIED TO USE chai-json-pattern BUT ENCOUNTERED A BUG. REVISIT.
-          expect(body).to.include('"GET /api"');
-          expect(body).to.include('"GET /api/topics"');
-          expect(body).to.include('"GET /api/articles"');
-        });
     });
   });
 });
