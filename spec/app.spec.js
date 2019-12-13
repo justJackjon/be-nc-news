@@ -20,11 +20,25 @@ describe('/api', () => {
         .get('/api')
         .expect(200)
         .then(({ body }) => {
-          expect(body).to.be.a('string');
+          expect(body).to.be.an('object');
           // TRIED TO USE chai-json-pattern BUT ENCOUNTERED A BUG. REVISIT.
-          expect(body).to.include('"GET /api"');
-          expect(body).to.include('"GET /api/topics"');
-          expect(body).to.include('"GET /api/articles"');
+          expect(body).to.have.keys([
+            'DELETE /api/articles/:article_id',
+            'DELETE /api/comments/:comment_id',
+            'GET /api',
+            'GET /api/articles',
+            'GET /api/articles/:article_id',
+            'GET /api/articles/:article_id/comments',
+            'GET /api/topics',
+            'GET /api/users',
+            'GET /api/users/:username',
+            'PATCH /api/articles/:article_id',
+            'PATCH /api/comments/:comment_id',
+            'POST /api/articles',
+            'POST /api/articles/:article_id/comments',
+            'POST /api/topics',
+            'POST /api/users'
+          ]);
         });
     });
   });

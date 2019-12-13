@@ -8,6 +8,8 @@ const {
   send500Error
 } = require('./errors');
 
+app.set('json spaces', 2);
+
 app.use(express.json());
 
 app.use('/api', apiRouter);
