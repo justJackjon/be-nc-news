@@ -19,6 +19,27 @@ const fetchUserM = ({ username }) => {
     });
 };
 
+const selectUsersArrayM = () => {
+  return connection
+    .select()
+    .from('users')
+    .returning('*')
+    .then(users => {
+      return { users };
+    });
+};
+
+const insertUserM = ({ username, name, avatar_url }) => {
+  return connection('users')
+    .insert({ username, name, avatar_url })
+    .returning('*')
+    .then(([user]) => {
+      return { user };
+    });
+};
+
 module.exports = {
-  fetchUserM
+  fetchUserM,
+  selectUsersArrayM,
+  insertUserM
 };

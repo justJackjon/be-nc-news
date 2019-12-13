@@ -117,9 +117,29 @@ const insertArticleM = ({ author, topic, title, body }) => {
     });
 };
 
+const removeArticleM = ({ article_id }) => {
+  if (typeof +article_id === 'number' && !isNaN(+article_id)) {
+    return connection('articles')
+      .where('article_id', '=', article_id)
+      .del()
+      .then(rowsDeleted => {
+        if (rowsDeleted) return;
+        return Promise.reject({
+          status: 404,
+          message: 'No Article Found, Nothing To Delete'
+        });
+      });
+  }
+  return Promise.reject({
+    status: 400,
+    message: 'Bad Request - Malformed article_id'
+  });
+};
+
 module.exports = {
   fetchArticleM,
   updateArticleM,
   selectArticlesArrayM,
-  insertArticleM
+  insertArticleM,
+  removeArticleM
 };

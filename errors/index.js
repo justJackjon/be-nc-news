@@ -30,6 +30,7 @@ exports.psqlErrorHandler = (err, req, res, next) => {
     if (codeRef[code]) {
       res.status(codeRef[code].status).send({ msg: codeRef[code].message });
     } else {
+      console.log('UNEXPECTED ERROR:', message);
       res.status(422).send({ msg: message });
     }
   } else {

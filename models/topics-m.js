@@ -1,20 +1,5 @@
 const connection = require('../db/connection');
 
-// const fetchTopicsM = slug => {
-//   return connection
-//     .select()
-//     .from('topics')
-//     .modify(query => {
-//       if (slug) {
-//         query.where('slug', '=', slug);
-//       }
-//     })
-//     .returning('*')
-//     .then(topics => {
-//       return { topics };
-//     });
-// };
-
 const fetchTopicsM = slug => {
   return connection
     .select()
@@ -31,6 +16,16 @@ const fetchTopicsM = slug => {
     });
 };
 
+const insertTopicM = ({ slug, description }) => {
+  return connection('topics')
+    .insert({ slug, description })
+    .returning('*')
+    .then(([topic]) => {
+      return { topic };
+    });
+};
+
 module.exports = {
-  fetchTopicsM
+  fetchTopicsM,
+  insertTopicM
 };

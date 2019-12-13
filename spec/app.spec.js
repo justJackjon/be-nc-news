@@ -54,8 +54,24 @@ describe('/api', () => {
           expect(msg).to.equal('Not Found');
         });
     });
+    it('POST:201 responds with status 201 and the posted topic, accepting an object with slug and description properties in the request body', () => {
+      return request(app)
+        .post('/api/topics')
+        .send({ slug: 'test slug', description: 'test description' })
+        .expect(201)
+        .then(({ body: { topic } }) => {
+          expect(topic).to.have.keys(['slug', 'description']);
+          expect(topic.slug).to.equal('test slug');
+          expect(topic.description).to.equal('test description');
+          return request(app).get('/api/topics');
+        })
+        .then(({ body: { topics } }) => {
+          expect(topics).to.be.an('array');
+          expect(topics.length).to.equal(4); // <-- there are only 3 topics in the test db before the POST request.
+        });
+    });
     it("ERROR INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
-      const invalidMethods = ['post', 'patch', 'put', 'delete'];
+      const invalidMethods = ['patch', 'put', 'delete'];
       const methodPromises = invalidMethods.map(method => {
         return request(app)
           [method]('/api/topics')
@@ -65,6 +81,45 @@ describe('/api', () => {
           });
       });
       return Promise.all(methodPromises);
+    });
+  });
+
+  describe('/users', () => {
+    it("GET:200 responds with status 200 and a users array of ALL the user objects, each of which should have the following properties: 'username', 'name' and 'avatar_url'", () => {
+      return request(app)
+        .get('/api/users')
+        .expect(200)
+        .then(({ body: { users } }) => {
+          expect(users).to.be.an('array');
+          users.forEach(user => {
+            expect(user).to.have.keys(['username', 'name', 'avatar_url']);
+          });
+          expect(users.length).to.equal(4); // <-- there are only 4 users in the test db
+        });
+    });
+    it('POST:201 responds with status 201 and the posted user, accepting an object with username, name and avatar_url properties in the request body', () => {
+      return request(app)
+        .post('/api/users')
+        .send({
+          username: 'test_user',
+          name: 'test name',
+          avatar_url:
+            'https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png'
+        })
+        .expect(201)
+        .then(({ body: { user } }) => {
+          expect(user).to.have.keys(['username', 'name', 'avatar_url']);
+          expect(user.username).to.equal('test_user');
+          expect(user.name).to.equal('test name');
+          expect(user.avatar_url).to.equal(
+            'https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png'
+          );
+          return request(app).get('/api/users');
+        })
+        .then(({ body: { users } }) => {
+          expect(users).to.be.an('array');
+          expect(users.length).to.equal(5); // <-- there are only 4 users in the test db before the POST request.
+        });
     });
   });
 
@@ -271,8 +326,34 @@ describe('/api', () => {
           });
       });
     });
+    describe('DELETE', () => {
+      it('DELETE:204 responds with status 204 and should delete the given article by article_id', () => {
+        return request(app)
+          .delete('/api/articles/1')
+          .expect(204)
+          .then(() => {
+            return connection
+              .select()
+              .from('articles')
+              .where('article_id', '=', 1)
+              .returning('*');
+          })
+          .then(response => {
+            expect(response).to.eql([]);
+          })
+          .then(() => {
+            return connection
+              .select()
+              .from('articles')
+              .returning('*')
+              .then(articlesArr => {
+                expect(articlesArr.length).to.equal(11); // Before the delete there are 12 articles in test db
+              });
+          });
+      });
+    });
     it("INVALID METHODS:405 responds with 405 status code and message, 'Method Not Allowed'", () => {
-      const invalidMethods = ['post', 'put', 'delete'];
+      const invalidMethods = ['post', 'put'];
       const methodPromises = invalidMethods.map(method => {
         return request(app)
           [method]('/api/articles/1')
@@ -303,6 +384,11 @@ describe('/api', () => {
           expect(comment.author).to.equal('butter_bridge');
           expect(comment.body).to.equal('test comment');
           expect(comment.article_id).to.equal(1);
+          return request(app).get('/api/articles/1/comments?limit=99');
+        })
+        .then(({ body: { comments } }) => {
+          expect(comments).to.be.an('array');
+          expect(comments.length).to.equal(14); // <-- there are only 13 comments for article_id 1 in the test db before the POST request.
         });
     });
     it('ERROR POST:400 responds with status 400 when POST request does not include all the required keys', () => {
@@ -505,7 +591,7 @@ describe('/api', () => {
 
   describe('/api/articles', () => {
     describe('GET', () => {
-      it("GET:200 respond with status 200 and an articles array of ALL the article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes','comment_count' and 'total_count'", () => {
+      it("GET:200 responds with status 200 and an articles array of ALL the article objects, each of which should have the following properties: 'author', 'title', 'article_id', 'topic', 'created_at', 'votes','comment_count' and 'total_count'", () => {
         return request(app)
           .get('/api/articles?limit=99') // <--- 'limit' query is tested below - this needs to be specified as number of articles to expect is 12, yet default limit value is 10
           .expect(200)
@@ -723,19 +809,35 @@ describe('/api', () => {
     });
     describe('POST', () => {
       it('POST:201 responds with status 201 and the posted article, accepting an object with author, topic, title and body properties in the request body', () => {
-        console.log('<<< TEMPORARY TEST >>>');
-        console.log('<<< Endpoint under construction >>>');
         return request(app)
           .post('/api/articles')
           .send({
             author: 'rogersop',
             topic: 'mitch',
-            title: 'test-title',
-            body: 'test-body'
+            title: 'test title',
+            body: 'test body'
           })
           .expect(201)
           .then(({ body: { article } }) => {
             expect(article).to.be.an('object');
+            expect(article.author).to.equal('rogersop');
+            expect(article.topic).to.equal('mitch');
+            expect(article.title).to.equal('test title');
+            expect(article.body).to.equal('test body');
+            expect(article).to.have.keys([
+              'author',
+              'title',
+              'body',
+              'article_id',
+              'topic',
+              'created_at',
+              'votes'
+            ]);
+            return request(app).get('/api/articles?limit=99');
+          })
+          .then(({ body: { articles } }) => {
+            expect(articles).to.be.an('array');
+            expect(articles.length).to.equal(13); // <-- there are only 12 articles in the test db before the POST request.
           });
       });
     });

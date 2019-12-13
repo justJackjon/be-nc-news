@@ -3,7 +3,8 @@ const {
   getArticleC,
   patchArticleC,
   getArticlesArrayC,
-  postArticleC
+  postArticleC,
+  deleteArticleC
 } = require('../controllers/articles-c');
 const { postCommentC, getCommentsC } = require('../controllers/comments-c');
 const { send405Error } = require('../errors');
@@ -18,6 +19,7 @@ articlesRouter
   .route('/:article_id')
   .get(getArticleC)
   .patch(patchArticleC)
+  .delete(deleteArticleC)
   .all(send405Error);
 
 articlesRouter

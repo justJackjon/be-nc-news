@@ -2,7 +2,8 @@ const {
   fetchArticleM,
   updateArticleM,
   selectArticlesArrayM,
-  insertArticleM
+  insertArticleM,
+  removeArticleM
 } = require('../models/articles-m');
 
 exports.getArticleC = ({ params }, res, next) => {
@@ -33,6 +34,14 @@ exports.postArticleC = ({ body }, res, next) => {
   insertArticleM(body)
     .then(article => {
       res.status(201).send(article);
+    })
+    .catch(next);
+};
+
+exports.deleteArticleC = ({ params }, res, next) => {
+  removeArticleM(params)
+    .then(() => {
+      res.sendStatus(204);
     })
     .catch(next);
 };
