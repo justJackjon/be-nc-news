@@ -9,6 +9,20 @@
       "topics": [{ "slug": "football", "description": "Footie!" }]
     }
   },
+  "POST /api/topics": {
+    "description": "posts a new topic object and responds with the posted topic",
+    "queries": [],
+    "exampleRequestBody": {
+      "slug": "test slug",
+      "description": "test description"
+    },
+    "exampleResponse": {
+      "topic": {
+        "slug": "test slug",
+        "description": "test description"
+      }
+    }
+  },
   "GET /api/articles": {
     "description": "serves an array of all topics",
     "queries": ["author", "topic", "sort_by", "order", "limit", "p"],
@@ -22,6 +36,27 @@
           "created_at": 1527695953341
         }
       ]
+    }
+  },
+  "POST /api/articles": {
+    "description": "posts a new article object and responds with the posted article",
+    "queries": [],
+    "exampleRequestBody": {
+      "author": "rogersop",
+      "topic": "mitch",
+      "title": "test title",
+      "body": "test body"
+    },
+    "exampleResponse": {
+      "article": {
+        "article_id": 13,
+        "title": "test title",
+        "body": "test body",
+        "votes": 0,
+        "topic": "mitch",
+        "author": "rogersop",
+        "created_at": "2019-12-13T11:46:53.751Z"
+      }
     }
   },
   "GET /api/articles/:article_id": {
@@ -56,6 +91,10 @@
         "comment_count": "8"
       }
     }
+  },
+  "DELETE /api/articles/:article_id": {
+    "description": "deletes the article object associated with the article_id requested",
+    "queries": []
   },
   "POST /api/articles/:article_id/comments": {
     "description": "posts a new comment object and responds with the posted comment",
@@ -118,6 +157,35 @@
         "username": "butter_bridge",
         "avatar_url": "https://www.healthytherapies.com/wp-content/uploads/2016/06/Lime3.jpg",
         "name": "jonny"
+      }
+    }
+  },
+  "GET /api/users": {
+    "description": "serves an array of all users",
+    "queries": [],
+    "exampleResponse": {
+      "users": [
+        {
+          "username": "test_user",
+          "name": "test name",
+          "avatar_url": "https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png"
+        }
+      ]
+    }
+  },
+  "POST /api/users": {
+    "description": "posts a new user object and responds with the posted user",
+    "queries": [],
+    "exampleRequestBody": {
+      "username": "test_user",
+      "name": "test name",
+      "avatar_url": "https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png"
+    },
+    "exampleResponse": {
+      "user": {
+        "username": "test_user",
+        "name": "test name",
+        "avatar_url": "https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png"
       }
     }
   }
