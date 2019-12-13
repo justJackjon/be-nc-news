@@ -69,42 +69,53 @@ const selectArticlesArrayM = ({
   p = 1
 }) => {
   if (order !== 'asc' && order !== 'desc') order = 'desc';
-  return fetchTopicsM(topic) // <-- add logic to skip this step if topic is undefined.
-    .then(() => {
-      if (!author) return;
-      return fetchUserM({ username: author });
+
+  const getArticles = connection
+    .select('articles.*')
+    .from('articles')
+    .leftJoin('comments', 'articles.article_id', 'comments.article_id')
+    .count('comment_id as comment_count')
+    .groupBy('articles.article_id')
+    .modify(query => {
+      if (author) return query.where('articles.author', '=', author);
+      if (topic) return query.where('topic', '=', topic);
+      const offset = (p - 1) * limit;
+      if (offset) return query.offset(offset);
     })
-    .then(() => {
-      return (
-        connection
-          .select('articles.*')
-          .from('articles')
-          .leftJoin('comments', 'articles.article_id', 'comments.article_id')
-          // .count('articles.article_id as total_count')
-          .count('comment_id as comment_count')
-          .groupBy('articles.article_id')
-          .modify(query => {
-            if (author) return query.where('articles.author', '=', author);
-            if (topic) return query.where('topic', '=', topic);
-            // const offset = (p - 1) * limit;
-            // if (offset) return query.offset(offset);
-          })
-          .orderBy(sort_by, order)
-          // .limit(limit)
-          .returning('*')
-          .then(articles => {
-            const totalCount = articles.length;
-            if (totalCount) {
-              const start = (p - 1) * limit;
-              articles = articles.slice(start, start + +limit);
-              articles.forEach(article => {
-                article.total_count = totalCount;
-                delete article.body;
-              });
-            }
-            return { articles };
-          })
-      );
+    .orderBy(sort_by, order)
+    .limit(limit)
+    .returning('*');
+
+  const getTotalCount = connection
+    .select()
+    .from('articles')
+    .count('article_id as total_count')
+    .modify(query => {
+      if (author) return query.where('articles.author', '=', author);
+      if (topic) return query.where('topic', '=', topic);
+    })
+    .returning('*');
+
+  return Promise.all([getArticles, getTotalCount])
+    .then(([articles, [{ total_count }]]) => {
+      articles.forEach(article => {
+        delete article.body;
+        article.total_count = +total_count;
+      });
+      return articles;
+    })
+    .then(articles => {
+      if (!articles.length && topic)
+        return fetchTopicsM(topic).then(() => articles);
+      return articles;
+    })
+    .then(articles => {
+      if (!articles.length && author)
+        return fetchUserM({ username: author }).then(() => articles);
+      return articles;
+    })
+    .then(articles => {
+      return { articles };
     });
 };
 

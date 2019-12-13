@@ -134,7 +134,7 @@ npm start
 
 ## Routes
 
-For a list of available endpoints, their descriptions, available queries and example server responses, check the endpoints.json in the repo - or, when the server is up and listening for requests, make a GET request to '/api'.
+For a list of available endpoints, their descriptions, available queries and example server responses, check the endpoints.json in the repo - or, when the server is up and listening for requests, make a [GET request to '/api'](https://justjackjon-nc-news.herokuapp.com/api/).
 
 ## Built With
 
