@@ -108,8 +108,13 @@ const selectArticlesArrayM = ({
     });
 };
 
+const insertArticleM = () => {
+  console.log('in the insertArticleM model!');
+};
+
 module.exports = {
   fetchArticleM,
   updateArticleM,
-  selectArticlesArrayM
+  selectArticlesArrayM,
+  insertArticleM
 };

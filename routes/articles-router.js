@@ -2,7 +2,8 @@ const articlesRouter = require('express').Router();
 const {
   getArticleC,
   patchArticleC,
-  getArticlesArrayC
+  getArticlesArrayC,
+  postArticleC
 } = require('../controllers/articles-c');
 const { postCommentC, getCommentsC } = require('../controllers/comments-c');
 const { send405Error } = require('../errors');
@@ -22,6 +23,7 @@ articlesRouter
 articlesRouter
   .route('/')
   .get(getArticlesArrayC)
+  .post(postArticleC)
   .all(send405Error);
 
 module.exports = articlesRouter;

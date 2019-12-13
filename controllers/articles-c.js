@@ -1,7 +1,8 @@
 const {
   fetchArticleM,
   updateArticleM,
-  selectArticlesArrayM
+  selectArticlesArrayM,
+  insertArticleM
 } = require('../models/articles-m');
 
 exports.getArticleC = ({ params }, res, next) => {
@@ -26,4 +27,9 @@ exports.getArticlesArrayC = ({ query }, res, next) => {
       res.status(200).send(articles);
     })
     .catch(next);
+};
+
+exports.postArticleC = (req, res, next) => {
+  console.log('in the postArticleC controller');
+  insertArticleM();
 };

@@ -1,5 +1,5 @@
 exports.formatDates = articleData => {
-  return list.map(({ ...articleDataCopy }) => {
+  return articleData.map(({ ...articleDataCopy }) => {
     articleDataCopy.created_at = new Date(articleDataCopy.created_at);
     return articleDataCopy;
   });
