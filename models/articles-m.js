@@ -55,9 +55,7 @@ const updateArticleM = ({ article_id }, { inc_votes }) => {
         });
       return responseArr;
     })
-    .then(([article]) => {
-      return { article };
-    });
+    .then(([article]) => ({ article }));
 };
 
 const selectArticlesArrayM = ({
@@ -114,18 +112,14 @@ const selectArticlesArrayM = ({
         return fetchUserM({ username: author }).then(() => articles);
       return articles;
     })
-    .then(articles => {
-      return { articles };
-    });
+    .then(articles => ({ articles }));
 };
 
 const insertArticleM = ({ author, topic, title, body }) => {
   return connection('articles')
     .insert({ author, topic, title, body })
     .returning('*')
-    .then(([article]) => {
-      return { article };
-    });
+    .then(([article]) => ({ article }));
 };
 
 const removeArticleM = ({ article_id }) => {

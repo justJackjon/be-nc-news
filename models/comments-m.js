@@ -5,9 +5,7 @@ const insertCommentM = ({ article_id }, { username, body }) => {
   return connection('comments')
     .insert({ author: username, article_id, body })
     .returning('*')
-    .then(([comment]) => {
-      return { comment };
-    });
+    .then(([comment]) => ({ comment }));
 };
 
 const selectCommentsM = (
@@ -26,9 +24,7 @@ const selectCommentsM = (
       .orderBy(sort_by, order)
       .limit(limit)
       .returning('*')
-      .then(comments => {
-        return { comments };
-      });
+      .then(comments => ({ comments }));
   });
 };
 

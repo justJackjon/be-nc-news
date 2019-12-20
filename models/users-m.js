@@ -24,18 +24,14 @@ const selectUsersArrayM = () => {
     .select()
     .from('users')
     .returning('*')
-    .then(users => {
-      return { users };
-    });
+    .then(users => ({ users }));
 };
 
 const insertUserM = ({ username, name, avatar_url }) => {
   return connection('users')
     .insert({ username, name, avatar_url })
     .returning('*')
-    .then(([user]) => {
-      return { user };
-    });
+    .then(([user]) => ({ user }));
 };
 
 module.exports = {

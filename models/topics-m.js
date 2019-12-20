@@ -20,9 +20,7 @@ const insertTopicM = ({ slug, description }) => {
   return connection('topics')
     .insert({ slug, description })
     .returning('*')
-    .then(([topic]) => {
-      return { topic };
-    });
+    .then(([topic]) => ({ topic }));
 };
 
 module.exports = {
