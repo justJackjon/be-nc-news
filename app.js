@@ -1,5 +1,5 @@
 const express = require('express');
-const app = express();
+const cors = require('cors');
 const apiRouter = require('./routes/api-router');
 const {
   send404Error,
@@ -7,6 +7,10 @@ const {
   customErrorHandler,
   send500Error
 } = require('./errors');
+
+const app = express();
+
+app.use(cors());
 
 app.set('json spaces', 2);
 
