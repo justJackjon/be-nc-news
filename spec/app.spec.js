@@ -326,6 +326,25 @@ describe('/api', () => {
             expect(article.votes).to.equal(105);
           });
       });
+      it('PATCH:200 responds with 200 status code and the updated article, where the number of votes and been DECREASED by the number specified in the request body', () => {
+        return request(app)
+          .patch('/api/articles/1')
+          .send({ inc_votes: -5 })
+          .expect(200)
+          .then(({ body: { article } }) => {
+            expect(article).to.have.keys([
+              'article_id',
+              'title',
+              'body',
+              'votes',
+              'topic',
+              'author',
+              'created_at'
+            ]);
+            expect(article.article_id).to.equal(1);
+            expect(article.votes).to.equal(95);
+          });
+      });
       it('ERROR PATCH:200 responds with 200 status code and correctly patched article, ignoring any additional properties present in the request body', () => {
         return request(app)
           .patch('/api/articles/2')

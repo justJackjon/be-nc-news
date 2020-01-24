@@ -43,7 +43,7 @@ const updateArticleM = ({ article_id }, { inc_votes }) => {
       if (+inc_votes > 0) {
         query.increment('votes', +inc_votes);
       } else if (+inc_votes < 0) {
-        query.decrement('votes', +inc_votes);
+        query.decrement('votes', Math.abs(inc_votes));
       }
     })
     .returning('*')
