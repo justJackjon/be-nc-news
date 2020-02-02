@@ -76,7 +76,7 @@ const selectArticlesArrayM = ({
     .groupBy('articles.article_id')
     .modify(query => {
       if (author) return query.where('articles.author', '=', author);
-      if (topic) return query.where('articles.topic', '=', topic); //
+      if (topic) return query.where('topic', '=', topic);
       const offset = (p - 1) * limit;
       if (offset) return query.offset(offset);
     })
@@ -90,7 +90,7 @@ const selectArticlesArrayM = ({
     .count('article_id as total_count')
     .modify(query => {
       if (author) return query.where('articles.author', '=', author);
-      if (topic) return query.where('articles.topic', '=', topic); //
+      if (topic) return query.where('topic', '=', topic);
     })
     .returning('*');
 
