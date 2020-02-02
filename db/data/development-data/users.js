@@ -2,7 +2,7 @@ module.exports = [
   {
     username: 'tickle122',
     name: 'Tom Tickle',
-    avatar_url: './static/js/assets/tom-tickle.png'
+    avatar_url: 'https://cdn.redrb.in/file/w_64,h_64/ncnews/tom-tickle.png'
   },
   {
     username: 'grumpy19',
@@ -18,12 +18,12 @@ module.exports = [
   {
     username: 'cooljmessy',
     name: 'Peter Messy',
-    avatar_url: './static/js/assets/peter-messy.png'
+    avatar_url: 'https://cdn.redrb.in/file/w_64,h_64/ncnews/peter-messy.png'
   },
   {
     username: 'weegembump',
     name: 'Gemma Bump',
-    avatar_url: './static/js/assets/gemma-bump.png'
+    avatar_url: 'https://cdn.redrb.in/file/w_64,h_64/ncnews/gemma-bump.png'
   },
   {
     username: 'jessjelly',
