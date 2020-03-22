@@ -2,7 +2,7 @@
 
 Northcoders News is a Node.js Express application featuring an intuitive REST API designed to access, manipulate and interact with users, topics, articles and comments.
 
-You can view a hosted version [here](https://justjackjon-nc-news.herokuapp.com/api).
+You can view a hosted version [here](https://justjackjon-nc-news-be.herokuapp.com/api).
 
 ## Getting Started
 
@@ -134,7 +134,7 @@ npm start
 
 ## Routes
 
-For a list of available endpoints, their descriptions, available queries and example server responses, check the endpoints.json in the repo - or, when the server is up and listening for requests, make a [GET request to '/api'](https://justjackjon-nc-news.herokuapp.com/api/).
+For a list of available endpoints, their descriptions, available queries and example server responses, check the endpoints.json in the repo - or, when the server is up and listening for requests, make a [GET request to '/api'](https://justjackjon-nc-news-be.herokuapp.com/api).
 
 ## Built With
 
